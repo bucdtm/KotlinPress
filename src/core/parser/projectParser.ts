@@ -168,6 +168,22 @@ export function parseAndroidProjectFiles(files: ProjectFileInput[]): ProjectImpo
     }
   }
 
+  // Si packageName sigue siendo por defecto, buscar en las declaraciones package de los archivos Kotlin
+  if (packageName === 'com.example.app') {
+    for (const f of files) {
+      if (f.path.endsWith('.kt')) {
+        const pkgMatch = f.content.match(/package\s+([a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)+)/);
+        if (pkgMatch && pkgMatch[1]) {
+          let foundPkg = pkgMatch[1];
+          // Limpiar sufijos comunes para obtener el paquete base de la aplicación
+          foundPkg = foundPkg.replace(/\.(?:ui|modelo|models|viewmodel|navigation|data|util|theme)$/, '');
+          packageName = foundPkg;
+          break;
+        }
+      }
+    }
+  }
+
   // 3. Extraer recursos de texto (strings.xml)
   const stringsMap: Record<string, string> = {};
   const stringsFile = files.find(f => f.path.endsWith('strings.xml'));

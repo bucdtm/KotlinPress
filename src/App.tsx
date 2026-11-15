@@ -28,10 +28,11 @@ import {
   ArrowRight,
   FileCode,
   FolderArchive,
+  FilePlus2,
 } from 'lucide-react';
 
 export default function App() {
-  const { ast, loadAST, resetToSample, selectScreen, selectComponent } = useEditorStore();
+  const { ast, loadAST, resetToSample, resetToBlank, selectScreen, selectComponent } = useEditorStore();
   const [leftTab, setLeftTab] = useState<'components' | 'screens' | 'classes' | 'theme'>('components');
   const [rightTab, setRightTab] = useState<'inspector' | 'code' | 'json'>('inspector');
   const [isExporting, setIsExporting] = useState(false);
@@ -156,10 +157,19 @@ export default function App() {
           <button
             onClick={resetToSample}
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 rounded transition cursor-pointer"
-            title="Restablecer proyecto a la plantilla demo"
+            title="Restablecer proyecto a ListaDeTareas"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Restablecer</span>
+          </button>
+
+          <button
+            onClick={resetToBlank}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 rounded transition cursor-pointer"
+            title="Crear un proyecto nuevo en blanco (desde cero)"
+          >
+            <FilePlus2 className="w-3.5 h-3.5" />
+            <span>Desde Cero</span>
           </button>
 
           <button

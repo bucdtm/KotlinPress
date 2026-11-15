@@ -141,28 +141,47 @@ export function parseClassDefinition(code: string, customName?: string, packageS
  */
 export function extractComposableFunctions(code: string): { name: string; code: string }[] {
   const results: { name: string; code: string }[] = [];
-  const regex = /@Composable\s+(?:inline\s+)?fun\s+([A-Z]\w*)\s*\([^)]*\)\s*\{/g;
+  const fnRegex = /@Composable\s+(?:inline\s+)?fun\s+([A-Z]\w*)\s*\(/g;
   let match: RegExpExecArray | null;
 
-  while ((match = regex.exec(code)) !== null) {
+  while ((match = fnRegex.exec(code)) !== null) {
     const fnName = match[1];
     // Ignorar funciones de vista previa de Android Studio o temas
     if (fnName.endsWith('Preview') || fnName.endsWith('Theme')) continue;
 
     const startIndex = match.index;
-    const braceStart = code.indexOf('{', match.index + match[0].length - 1);
-    if (braceStart === -1) continue;
+    const parenStart = code.indexOf('(', match.index);
+    if (parenStart === -1) continue;
 
+    // Balancear paréntesis de los argumentos de la función (incluye defaults como = viewModel())
     let depth = 1;
-    let i = braceStart + 1;
+    let i = parenStart + 1;
     while (i < code.length && depth > 0) {
-      if (code[i] === '{') depth++;
-      else if (code[i] === '}') depth--;
+      if (code[i] === '(') depth++;
+      else if (code[i] === ')') depth--;
       i++;
     }
+    if (depth !== 0) continue;
 
-    if (depth === 0) {
-      const fullFnCode = code.slice(startIndex, i);
+    // Buscar el '{' que abre el cuerpo de la función
+    const braceStart = code.indexOf('{', i);
+    if (braceStart === -1) continue;
+
+    // Verificar que entre ')' y '{' no haya otra función o punto y coma
+    const inBetween = code.slice(i, braceStart);
+    if (inBetween.includes('fun ') || inBetween.includes(';')) continue;
+
+    // Balancear llaves del cuerpo
+    let bDepth = 1;
+    let j = braceStart + 1;
+    while (j < code.length && bDepth > 0) {
+      if (code[j] === '{') bDepth++;
+      else if (code[j] === '}') bDepth--;
+      j++;
+    }
+
+    if (bDepth === 0) {
+      const fullFnCode = code.slice(startIndex, j);
       results.push({ name: fnName, code: fullFnCode });
     }
   }
@@ -193,10 +212,26 @@ export function parseComposableToScreen(code: string, customName?: string): Scre
 
   // 3. Extraer el cuerpo visual del Composable
   let bodyCode = code;
-  const bodyStart = code.indexOf('{');
-  const bodyEnd = code.lastIndexOf('}');
-  if (bodyStart !== -1 && bodyEnd > bodyStart) {
-    bodyCode = code.slice(bodyStart + 1, bodyEnd);
+  const parenStart = code.indexOf('(');
+  if (parenStart !== -1) {
+    let pDepth = 1;
+    let idx = parenStart + 1;
+    while (idx < code.length && pDepth > 0) {
+      if (code[idx] === '(') pDepth++;
+      else if (code[idx] === ')') pDepth--;
+      idx++;
+    }
+    const braceStart = code.indexOf('{', idx);
+    const bodyEnd = code.lastIndexOf('}');
+    if (braceStart !== -1 && bodyEnd > braceStart) {
+      bodyCode = code.slice(braceStart + 1, bodyEnd);
+    }
+  } else {
+    const bodyStart = code.indexOf('{');
+    const bodyEnd = code.lastIndexOf('}');
+    if (bodyStart !== -1 && bodyEnd > bodyStart) {
+      bodyCode = code.slice(bodyStart + 1, bodyEnd);
+    }
   }
 
   // 4. Parsear el árbol de componentes Compose
@@ -270,6 +305,10 @@ function extractStateVariables(code: string): StateVariable[] {
   let uMatch: RegExpExecArray | null;
   while ((uMatch = uiStateRegex.exec(code)) !== null) {
     const varName = uMatch[1];
+    // Ignorar llamadas a métodos de Compose/Flow sobre uiState
+    if (varName === 'collectAsState' || varName === 'collectAsStateWithLifecycle' || varName === 'value') {
+      continue;
+    }
     if (!foundNames.has(varName)) {
       foundNames.add(varName);
 
@@ -318,6 +357,7 @@ const KNOWN_COMPONENTS = [
   'Spacer',
   'HorizontalDivider',
   'Divider',
+  'Scaffold',
 ];
 
 /**
@@ -373,6 +413,13 @@ function parseComposeChildren(block: string): UIComponentNode[] {
       i = findMatchingClose(block, i, '{', '}');
       bodyString = block.slice(startBrace + 1, i);
       i++; // saltar el '}'
+    }
+
+    if (matchedType === 'Scaffold') {
+      const cleanBody = bodyString.replace(/^\s*(?:\([^\)]*\)|[a-zA-Z_]\w*)\s*->\s*/, '');
+      const innerNodes = parseComposeChildren(cleanBody);
+      nodes.push(...innerNodes);
+      continue;
     }
 
     // Normalizar tipos
@@ -511,8 +558,8 @@ function parseProps(type: ComponentType, args: string, body: string): ComponentP
 
   // Text
   if (type === 'Text') {
-    const textLit = args.match(/text\s*=\s*"([^"]*)"/);
-    const textPlain = args.match(/Text\(\s*"([^"]*)"/);
+    const textLit = args.match(/text\s*=\s*["']([^"']*)["']/);
+    const textPlain = args.match(/^["']([^"']*)["']/) || args.match(/["']([^"']*)["']/);
     const textBinding = args.match(/text\s*=\s*uiState\.(\w+)/);
     const strRes = args.match(/text\s*=\s*stringResource\(R\.string\.(\w+)\)/);
 
@@ -541,11 +588,20 @@ function parseProps(type: ComponentType, args: string, body: string): ComponentP
     const valBind = args.match(/value\s*=\s*uiState\.(\w+)/);
     if (valBind) p.valueBinding = valBind[1];
 
-    const labelMatch = args.match(/label\s*=\s*\{\s*Text\("([^"]*)"\)\s*\}/);
+    const labelMatch = args.match(/label\s*=\s*\{\s*Text\(\s*(?:text\s*=\s*)?["']([^"']*)["']\s*\)\s*\}/);
     if (labelMatch) p.label = labelMatch[1];
 
-    const hintMatch = args.match(/placeholder\s*=\s*\{\s*Text\("([^"]*)"\)\s*\}/);
+    const hintMatch = args.match(/placeholder\s*=\s*\{\s*Text\(\s*(?:text\s*=\s*)?["']([^"']*)["']\s*\)\s*\}/);
     if (hintMatch) p.placeholder = hintMatch[1];
+  }
+
+  // Button
+  if (type === 'Button' || type === 'OutlinedButton') {
+    const textLit = body.match(/Text\(\s*(?:text\s*=\s*)?["']([^"']*)["']/);
+    if (textLit) p.label = textLit[1];
+
+    const strRes = body.match(/stringResource\(R\.string\.(\w+)\)/);
+    if (strRes) p.label = strRes[1].replace(/_/g, ' ');
   }
 
   // RadioButton

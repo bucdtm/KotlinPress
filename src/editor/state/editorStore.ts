@@ -11,7 +11,7 @@ import {
   isContainerComponent,
   CustomKotlinFile,
 } from '../../core/ast/schema.ts';
-import { sampleAppAST } from '../../core/ast/sampleApp.ts';
+import { listaDeTareasAST, blankProjectAST } from '../../core/ast/listaDeTareasProject.ts';
 import { THEME_PRESETS } from '../../core/ast/themePresets.ts';
 import { parseKotlinCode, ImportResult } from '../../core/parser/kotlinParser.ts';
 
@@ -51,6 +51,7 @@ interface EditorState {
 
   loadAST: (ast: AppAST) => void;
   resetToSample: () => void;
+  resetToBlank: () => void;
 }
 
 function findAndMutateNode(
@@ -135,8 +136,8 @@ function cloneNodeWithNewIds(node: UIComponentNode): UIComponentNode {
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
-  ast: sampleAppAST,
-  selectedScreenId: 'home',
+  ast: listaDeTareasAST,
+  selectedScreenId: 'tarea_screen',
   selectedComponentId: null,
   interactiveMode: false,
 
@@ -495,8 +496,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   loadAST: (ast) => set({ ast, selectedScreenId: ast.screens[0]?.id || '', selectedComponentId: null }),
 
   resetToSample: () => set({
-    ast: JSON.parse(JSON.stringify(sampleAppAST)),
-    selectedScreenId: 'home',
+    ast: JSON.parse(JSON.stringify(listaDeTareasAST)),
+    selectedScreenId: 'tarea_screen',
+    selectedComponentId: null,
+  }),
+
+  resetToBlank: () => set({
+    ast: JSON.parse(JSON.stringify(blankProjectAST)),
+    selectedScreenId: 'pantalla_principal',
     selectedComponentId: null,
   }),
 }));

@@ -203,4 +203,58 @@ fun HomeScreen() {
     expect(result.ast?.appInfo.packageName).toBe('com.exportado.test');
     expect(result.ast?.screens.length).toBe(1);
   });
+
+  it('analiza e importa correctamente el proyecto real ListaDeTareas', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const rootDir = 'C:\\Users\\Admin\\AndroidStudioProjects\\ListaDeTareas\\app\\src\\main';
+
+    if (!fs.existsSync(rootDir)) {
+      console.warn('Directorio no encontrado, omitiendo test local');
+      return;
+    }
+
+    function scanFiles(dir: string, base: string): { path: string; content: string }[] {
+      let res: { path: string; content: string }[] = [];
+      const entries = fs.readdirSync(dir);
+      for (const e of entries) {
+        const full = path.join(dir, e);
+        if (fs.statSync(full).isDirectory()) {
+          res = res.concat(scanFiles(full, base));
+        } else {
+          const rel = path.relative(base, full).replace(/\\/g, '/');
+          res.push({ path: rel, content: fs.readFileSync(full, 'utf-8') });
+        }
+      }
+      return res;
+    }
+
+    const files = scanFiles(rootDir, rootDir);
+    const result = parseAndroidProjectFiles(files);
+
+    expect(result.success).toBe(true);
+    expect(result.ast).toBeDefined();
+    console.log('--- RESULTADO PARSEO LISTADETAREAS ---');
+    console.log('App:', result.ast?.appInfo.appName);
+    console.log('Package:', result.ast?.appInfo.packageName);
+    console.log('Screens:', result.ast?.screens.map(s => ({
+      name: s.name,
+      componentCount: s.rootComponent.children?.length,
+      variables: s.stateVariables.map(v => v.name)
+    })));
+    console.log('Custom files:', result.ast?.customFiles?.map(c => ({ name: c.name, kind: c.kind })));
+    console.log('Strings:', result.summary.strings);
+    console.log('TareaScreen components:', JSON.stringify(result.ast?.screens[0].rootComponent.children?.map(c => ({
+      type: c.type,
+      name: c.name,
+      props: c.props,
+      children: c.children?.length
+    })), null, 2));
+
+    expect(result.ast?.appInfo.appName).toBe('ListaDeTareas');
+    expect(result.ast?.appInfo.packageName).toBe('com.example.listadetareas');
+    expect(result.ast?.screens.some(s => s.name === 'TareaScreen')).toBe(true);
+    expect(result.ast?.customFiles?.some(c => c.name === 'Tarea.kt')).toBe(true);
+    expect(result.ast?.customFiles?.some(c => c.name === 'TareaUIState.kt')).toBe(true);
+  });
 });

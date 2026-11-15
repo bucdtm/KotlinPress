@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useEditorStore } from '../state/editorStore.ts';
+import { listaDeTareasAST } from '../../core/ast/listaDeTareasProject.ts';
 import {
   parseAndroidProjectZip,
   parseAndroidProjectFiles,
@@ -198,6 +199,20 @@ export const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
             >
               <FolderInput className="w-3.5 h-3.5" />
               <span>Carpeta de Proyecto</span>
+            </button>
+
+            <button
+              onClick={() => {
+                loadAST(listaDeTareasAST);
+                selectScreen('tarea_screen');
+                if (onSuccess) onSuccess('ListaDeTareas');
+                onClose();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium bg-[#7f52ff]/20 hover:bg-[#7f52ff]/35 border border-[#7f52ff]/50 text-purple-200 transition cursor-pointer"
+              title="Cargar directamente el proyecto local ListaDeTareas (C:\Users\Admin\AndroidStudioProjects\ListaDeTareas\app\src\main)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Cargar ListaDeTareas (Local)</span>
             </button>
           </div>
 
