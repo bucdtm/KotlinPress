@@ -311,16 +311,16 @@ export default function App() {
             </button>
           </div>
 
-          {/* Contenido pestaña izquierda: Componentes arriba + Capas debajo */}
+          {/* Contenido pestaña izquierda: Componentes arriba + Capas debajo (subido y con más espacio) */}
           <div className="flex-1 overflow-hidden flex flex-col">
             {leftTab === 'components' && (
               <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Paleta de Componentes */}
-                <div className="flex-1 overflow-y-auto">
+                {/* Paleta de Componentes Compacta */}
+                <div className="h-[270px] overflow-y-auto shrink-0 border-b border-zinc-800/80 bg-[#101013]">
                   <ComponentPalette />
                 </div>
-                {/* Jerarquía de Capas debajo */}
-                <div className="h-64 border-t border-zinc-800/90 bg-[#0d0d10] overflow-y-auto shrink-0 shadow-inner">
+                {/* Jerarquía de Capas (situada más arriba y ocupando el resto del espacio) */}
+                <div className="flex-1 bg-[#0c0c0f] overflow-hidden flex flex-col shadow-inner">
                   <LayerTree />
                 </div>
               </div>

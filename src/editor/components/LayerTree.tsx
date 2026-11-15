@@ -249,9 +249,9 @@ export const LayerTree: React.FC = () => {
   const hasSelection = Boolean(selectedComponentId && !isRootSelected);
 
   return (
-    <div className="flex flex-col gap-1.5 p-3 text-xs">
+    <div className="flex flex-col gap-1.5 p-3 text-xs h-full overflow-hidden">
       {/* Barra de título con controles rápidos para el elemento seleccionado */}
-      <div className="flex items-center justify-between px-1">
+      <div className="flex items-center justify-between px-1 shrink-0">
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] font-medium text-zinc-400">
             Jerarquía de Capas
@@ -296,7 +296,7 @@ export const LayerTree: React.FC = () => {
         )}
       </div>
 
-      <div className="flex flex-col bg-[#0f0f12] border border-zinc-800/80 rounded-md p-1.5 max-h-[380px] overflow-y-auto">
+      <div className="flex-1 flex flex-col bg-[#0f0f12] border border-zinc-800/80 rounded-md p-1.5 overflow-y-auto">
         <TreeNode node={screen.rootComponent} level={0} isRoot />
       </div>
     </div>
