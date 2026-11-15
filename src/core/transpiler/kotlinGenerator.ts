@@ -79,6 +79,22 @@ export function transpileAppToKotlin(ast: AppAST): TranspilationResult {
     });
   }
 
+  // Añadir archivos y clases Kotlin personalizadas (Data classes, Enums, Utils, Modelos)
+  if (ast.customFiles && ast.customFiles.length > 0) {
+    for (const cf of ast.customFiles) {
+      const fileName = cf.name.endsWith('.kt') ? cf.name : `${cf.name}.kt`;
+      const suffix = cf.packageSuffix || 'models';
+      let content = cf.content;
+      if (!content.includes('package ')) {
+        content = `package ${pkg}.${suffix}\n\n${content}`;
+      }
+      allFiles.push({
+        path: `${suffix}/${fileName}`,
+        content,
+      });
+    }
+  }
+
   return {
     screens: screenResults,
     navHost: navHostCode,

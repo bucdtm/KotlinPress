@@ -61,7 +61,9 @@ export async function createAndroidProjectZip(ast: AppAST): Promise<Blob> {
       if (javaFolder) {
         const transpiled = transpileAppToKotlin(ast);
         for (const file of transpiled.allFiles) {
-          javaFolder.file(file.path, file.content);
+          if (!file.path.startsWith('res/')) {
+            javaFolder.file(file.path, file.content);
+          }
         }
       }
     }

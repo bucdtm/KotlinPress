@@ -6,6 +6,8 @@ import { ScreenManager } from './editor/components/ScreenManager.tsx';
 import { StateManager } from './editor/components/StateManager.tsx';
 import { PropertyInspector } from './editor/components/PropertyInspector.tsx';
 import { ThemeManager } from './editor/components/ThemeManager.tsx';
+import { ClassManager } from './editor/components/ClassManager.tsx';
+import { KotlinImportModal } from './editor/components/KotlinImportModal.tsx';
 import { KotlinViewer } from './editor/codeview/KotlinViewer.tsx';
 import { PhoneSimulator } from './runtime/PhoneSimulator.tsx';
 import { downloadAndroidProjectZip } from './core/exporter/zipPackager.ts';
@@ -23,14 +25,16 @@ import {
   CheckCircle2,
   X,
   ArrowRight,
+  FileCode,
 } from 'lucide-react';
 
 export default function App() {
   const { ast, loadAST, resetToSample, selectScreen, selectComponent } = useEditorStore();
-  const [leftTab, setLeftTab] = useState<'components' | 'screens' | 'theme'>('components');
+  const [leftTab, setLeftTab] = useState<'components' | 'screens' | 'classes' | 'theme'>('components');
   const [rightTab, setRightTab] = useState<'inspector' | 'code' | 'json'>('inspector');
   const [isExporting, setIsExporting] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [showKotlinImport, setShowKotlinImport] = useState(false);
 
   // Linter en tiempo real sobre la arquitectura y el AST
   const issues = useMemo(() => lintAppAST(ast), [ast]);
@@ -162,6 +166,15 @@ export default function App() {
           </label>
 
           <button
+            onClick={() => setShowKotlinImport(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-[#bba2ff] hover:text-white bg-[#7f52ff]/15 hover:bg-[#7f52ff]/30 border border-[#7f52ff]/40 rounded transition cursor-pointer"
+            title="Importar código Kotlin o pantalla Composable"
+          >
+            <FileCode className="w-3.5 h-3.5 text-[#9f7dff]" />
+            <span>Importar Kotlin</span>
+          </button>
+
+          <button
             onClick={handleExportJSON}
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/60 rounded transition"
             title="Exportar AST JSON"
@@ -273,12 +286,25 @@ export default function App() {
         </div>
       )}
 
+      {/* Modal de Importación de Código Kotlin / Compose */}
+      <KotlinImportModal
+        isOpen={showKotlinImport}
+        onClose={() => setShowKotlinImport(false)}
+        onImportSuccess={res => {
+          if (res.type === 'class') {
+            setLeftTab('classes');
+          } else {
+            setLeftTab('components');
+          }
+        }}
+      />
+
       {/* Cuerpo principal en 3 columnas */}
       <div className="flex-1 flex overflow-hidden">
         {/* PANEL IZQUIERDO: Paleta / Árbol / Pantallas / Temas */}
         <aside className="w-72 border-r border-zinc-800/80 bg-[#101013] flex flex-col shrink-0 z-20">
           {/* Selector de pestañas izquierda */}
-          <div className="flex border-b border-zinc-800 text-xs font-medium bg-[#121215]">
+          <div className="flex border-b border-zinc-800 text-[11px] font-medium bg-[#121215]">
             <button
               onClick={() => setLeftTab('components')}
               className={`flex-1 py-2 text-center transition ${
@@ -300,6 +326,16 @@ export default function App() {
               Pantallas
             </button>
             <button
+              onClick={() => setLeftTab('classes')}
+              className={`flex-1 py-2 text-center transition ${
+                leftTab === 'classes'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#16161b]'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              Clases
+            </button>
+            <button
               onClick={() => setLeftTab('theme')}
               className={`flex-1 py-2 text-center transition ${
                 leftTab === 'theme'
@@ -311,7 +347,7 @@ export default function App() {
             </button>
           </div>
 
-          {/* Contenido pestaña izquierda: Componentes arriba + Capas debajo (subido y con más espacio) */}
+          {/* Contenido pestaña izquierda */}
           <div className="flex-1 overflow-hidden flex flex-col">
             {leftTab === 'components' && (
               <div className="flex-1 flex flex-col overflow-hidden">
@@ -329,6 +365,11 @@ export default function App() {
               <div className="flex-1 overflow-y-auto flex flex-col">
                 <ScreenManager />
                 <StateManager />
+              </div>
+            )}
+            {leftTab === 'classes' && (
+              <div className="flex-1 overflow-hidden flex flex-col">
+                <ClassManager />
               </div>
             )}
             {leftTab === 'theme' && (

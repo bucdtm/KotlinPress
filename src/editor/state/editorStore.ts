@@ -9,9 +9,11 @@ import {
   ComponentType,
   AppThemeConfig,
   isContainerComponent,
+  CustomKotlinFile,
 } from '../../core/ast/schema.ts';
 import { sampleAppAST } from '../../core/ast/sampleApp.ts';
 import { THEME_PRESETS } from '../../core/ast/themePresets.ts';
+import { parseKotlinCode, ImportResult } from '../../core/parser/kotlinParser.ts';
 
 interface EditorState {
   ast: AppAST;
@@ -37,6 +39,12 @@ interface EditorState {
 
   addScreen: (name: string, route: string) => void;
   deleteScreen: (screenId: string) => void;
+
+  // Gestión de Clases y Archivos Kotlin Personalizados
+  addCustomFile: (file: CustomKotlinFile) => void;
+  updateCustomFile: (id: string, file: Partial<CustomKotlinFile>) => void;
+  deleteCustomFile: (id: string) => void;
+  importKotlin: (code: string) => ImportResult;
 
   updateTheme: (theme: Partial<AppThemeConfig>) => void;
   applyThemePreset: (presetId: string) => void;
@@ -410,6 +418,62 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     newAst.screens = newAst.screens.filter(s => s.id !== screenId);
     const nextScreen = newAst.screens[0].id;
     set({ ast: newAst, selectedScreenId: nextScreen, selectedComponentId: null });
+  },
+
+  addCustomFile: (file) => {
+    const { ast } = get();
+    const newAst = JSON.parse(JSON.stringify(ast)) as AppAST;
+    if (!newAst.customFiles) newAst.customFiles = [];
+    newAst.customFiles.push(file);
+    set({ ast: newAst });
+  },
+
+  updateCustomFile: (id, file) => {
+    const { ast } = get();
+    const newAst = JSON.parse(JSON.stringify(ast)) as AppAST;
+    if (!newAst.customFiles) return;
+    const idx = newAst.customFiles.findIndex(f => f.id === id);
+    if (idx !== -1) {
+      newAst.customFiles[idx] = { ...newAst.customFiles[idx], ...file };
+      set({ ast: newAst });
+    }
+  },
+
+  deleteCustomFile: (id) => {
+    const { ast } = get();
+    const newAst = JSON.parse(JSON.stringify(ast)) as AppAST;
+    if (!newAst.customFiles) return;
+    newAst.customFiles = newAst.customFiles.filter(f => f.id !== id);
+    set({ ast: newAst });
+  },
+
+  importKotlin: (code) => {
+    const result = parseKotlinCode(code);
+    if (!result.success) return result;
+
+    const { ast } = get();
+    const newAst = JSON.parse(JSON.stringify(ast)) as AppAST;
+
+    if (result.screen) {
+      // Garantizar que la ruta sea única
+      let finalRoute = result.screen.route;
+      let counter = 1;
+      while (newAst.screens.some(s => s.route === finalRoute)) {
+        finalRoute = `${result.screen.route}_${counter++}`;
+      }
+      result.screen.route = finalRoute;
+
+      newAst.screens.push(result.screen);
+      set({ ast: newAst, selectedScreenId: result.screen.id, selectedComponentId: null });
+    }
+
+    if (result.customFile) {
+      if (!newAst.customFiles) newAst.customFiles = [];
+      newAst.customFiles.push(result.customFile);
+      set({ ast: newAst });
+    }
+
+    return result;
   },
 
   updateTheme: (themeUpdate) => {

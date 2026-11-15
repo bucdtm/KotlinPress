@@ -87,6 +87,9 @@ export const KotlinViewer: React.FC = () => {
           if (fileName.endsWith('.xml')) {
             badgeText = 'XML';
             badgeColor = 'bg-amber-950/60 text-amber-400 border border-amber-800/40';
+          } else if (file.path.startsWith('models/') || file.path.startsWith('data/') || file.path.startsWith('util/')) {
+            badgeText = 'Class';
+            badgeColor = 'bg-sky-950/60 text-sky-400 border border-sky-800/40';
           } else if (fileName.includes('UiState')) {
             badgeText = 'State';
             badgeColor = 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40';

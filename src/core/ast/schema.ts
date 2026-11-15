@@ -155,6 +155,16 @@ export interface AppThemeConfig {
   fontFamily?: FontFamilyType;
 }
 
+export type CustomFileKind = 'data_class' | 'enum' | 'class' | 'util' | 'composable';
+
+export interface CustomKotlinFile {
+  id: string;
+  name: string;               // ej: "Alumno.kt", "Constantes.kt"
+  packageSuffix?: string;     // ej: "models", "data", "util"
+  content: string;            // Código Kotlin fuente completo
+  kind: CustomFileKind;
+}
+
 export interface AppAST {
   schemaVersion: '1.0.0';
   appInfo: {
@@ -167,4 +177,5 @@ export interface AppAST {
   globalState: StateVariable[];
   startScreenId: string;
   screens: ScreenDefinition[];
+  customFiles?: CustomKotlinFile[];
 }
