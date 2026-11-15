@@ -105,9 +105,9 @@ export function parseKotlinCode(rawCode: string): ImportResult {
   };
 }
 
-function parseClassDefinition(code: string): CustomKotlinFile {
+export function parseClassDefinition(code: string, customName?: string, packageSuffix?: string): CustomKotlinFile {
   let kind: CustomKotlinFile['kind'] = 'class';
-  let className = 'CustomClass';
+  let className = customName || 'CustomClass';
 
   const dataMatch = code.match(/data\s+class\s+(\w+)/);
   const enumMatch = code.match(/enum\s+class\s+(\w+)/);
@@ -115,32 +115,69 @@ function parseClassDefinition(code: string): CustomKotlinFile {
 
   if (dataMatch) {
     kind = 'data_class';
-    className = dataMatch[1];
+    if (!customName) className = dataMatch[1];
   } else if (enumMatch) {
     kind = 'enum';
-    className = enumMatch[1];
+    if (!customName) className = enumMatch[1];
   } else if (classMatch) {
     kind = 'class';
-    className = classMatch[1];
+    if (!customName) className = classMatch[1];
   }
+
+  // Si customName viene con extensión .kt, quitarla para el nombre de clase
+  const cleanName = className.replace(/\.kt$/, '');
 
   return {
     id: `custom-file-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-    name: `${className}.kt`,
-    packageSuffix: 'models',
+    name: `${cleanName}.kt`,
+    packageSuffix: packageSuffix || 'models',
     content: code,
     kind,
   };
 }
 
 /**
+ * Extrae todas las funciones @Composable visuales de un archivo Kotlin
+ */
+export function extractComposableFunctions(code: string): { name: string; code: string }[] {
+  const results: { name: string; code: string }[] = [];
+  const regex = /@Composable\s+(?:inline\s+)?fun\s+([A-Z]\w*)\s*\([^)]*\)\s*\{/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(code)) !== null) {
+    const fnName = match[1];
+    // Ignorar funciones de vista previa de Android Studio o temas
+    if (fnName.endsWith('Preview') || fnName.endsWith('Theme')) continue;
+
+    const startIndex = match.index;
+    const braceStart = code.indexOf('{', match.index + match[0].length - 1);
+    if (braceStart === -1) continue;
+
+    let depth = 1;
+    let i = braceStart + 1;
+    while (i < code.length && depth > 0) {
+      if (code[i] === '{') depth++;
+      else if (code[i] === '}') depth--;
+      i++;
+    }
+
+    if (depth === 0) {
+      const fullFnCode = code.slice(startIndex, i);
+      results.push({ name: fnName, code: fullFnCode });
+    }
+  }
+
+  return results;
+}
+
+/**
  * Extrae la pantalla, variables de estado y la jerarquía de UI a partir de un Composable
  */
-function parseComposableToScreen(code: string): ScreenDefinition {
+export function parseComposableToScreen(code: string, customName?: string): ScreenDefinition {
   // 1. Nombre de la pantalla
-  let screenName = 'ImportedScreen';
+  let screenName = customName || 'ImportedScreen';
   const funMatch = code.match(/fun\s+([A-Z]\w+)\s*\(/);
-  if (funMatch) {
+  if (funMatch && !customName) {
     screenName = funMatch[1];
     if (screenName.endsWith('Content')) {
       screenName = screenName.replace(/Content$/, '');
@@ -566,7 +603,7 @@ function parseProps(type: ComponentType, args: string, body: string): ComponentP
   return p;
 }
 
-function countNodes(node: UIComponentNode): number {
+export function countNodes(node: UIComponentNode): number {
   let count = 1;
   if (node.children) {
     for (const child of node.children) {

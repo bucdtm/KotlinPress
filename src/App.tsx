@@ -8,6 +8,7 @@ import { PropertyInspector } from './editor/components/PropertyInspector.tsx';
 import { ThemeManager } from './editor/components/ThemeManager.tsx';
 import { ClassManager } from './editor/components/ClassManager.tsx';
 import { KotlinImportModal } from './editor/components/KotlinImportModal.tsx';
+import { ProjectImportModal } from './editor/components/ProjectImportModal.tsx';
 import { KotlinViewer } from './editor/codeview/KotlinViewer.tsx';
 import { PhoneSimulator } from './runtime/PhoneSimulator.tsx';
 import { downloadAndroidProjectZip } from './core/exporter/zipPackager.ts';
@@ -26,6 +27,7 @@ import {
   X,
   ArrowRight,
   FileCode,
+  FolderArchive,
 } from 'lucide-react';
 
 export default function App() {
@@ -35,6 +37,7 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [showKotlinImport, setShowKotlinImport] = useState(false);
+  const [showProjectImport, setShowProjectImport] = useState(false);
 
   // Linter en tiempo real sobre la arquitectura y el AST
   const issues = useMemo(() => lintAppAST(ast), [ast]);
@@ -152,18 +155,21 @@ export default function App() {
         <div className="flex items-center gap-2">
           <button
             onClick={resetToSample}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 rounded transition"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 rounded transition cursor-pointer"
             title="Restablecer proyecto a la plantilla demo"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Restablecer</span>
           </button>
 
-          <label className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/60 rounded cursor-pointer transition">
-            <Upload className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Importar JSON</span>
-            <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
-          </label>
+          <button
+            onClick={() => setShowProjectImport(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-800/60 rounded transition cursor-pointer"
+            title="Importar proyecto completo Android Studio (.zip o carpeta)"
+          >
+            <FolderArchive className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Importar Proyecto (.zip)</span>
+          </button>
 
           <button
             onClick={() => setShowKotlinImport(true)}
@@ -174,9 +180,15 @@ export default function App() {
             <span>Importar Kotlin</span>
           </button>
 
+          <label className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/60 rounded cursor-pointer transition">
+            <Upload className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Importar JSON</span>
+            <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
+          </label>
+
           <button
             onClick={handleExportJSON}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/60 rounded transition"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/60 rounded transition cursor-pointer"
             title="Exportar AST JSON"
           >
             <Download className="w-3.5 h-3.5 text-zinc-400" />
@@ -296,6 +308,15 @@ export default function App() {
           } else {
             setLeftTab('components');
           }
+        }}
+      />
+
+      {/* Modal de Importación de Proyecto Completo Android (.zip / carpeta) */}
+      <ProjectImportModal
+        isOpen={showProjectImport}
+        onClose={() => setShowProjectImport(false)}
+        onSuccess={() => {
+          setLeftTab('components');
         }}
       />
 
