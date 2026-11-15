@@ -75,6 +75,7 @@ fun ${screen.name}Content(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
 ${rootComponentCode}
 }
 `;

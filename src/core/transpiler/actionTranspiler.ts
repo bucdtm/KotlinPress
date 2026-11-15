@@ -29,7 +29,9 @@ export function transpileActions(
         break;
 
       case 'SET_STATE':
-        if (typeof act.value === 'string') {
+        if (act.isBinding) {
+          lines.push(`${indent}viewModel.update${capitalize(act.targetVar)}(uiState.${act.value})`);
+        } else if (typeof act.value === 'string') {
           lines.push(`${indent}viewModel.update${capitalize(act.targetVar)}("${act.value}")`);
         } else {
           lines.push(`${indent}viewModel.set${capitalize(act.targetVar)}(${act.value})`);
@@ -38,6 +40,22 @@ export function transpileActions(
 
       case 'TOGGLE_BOOLEAN':
         lines.push(`${indent}viewModel.toggle${capitalize(act.targetVar)}()`);
+        break;
+
+      case 'RESET_STATE':
+        if (act.targetVar) {
+          lines.push(`${indent}viewModel.reset${capitalize(act.targetVar)}()`);
+        } else {
+          lines.push(`${indent}viewModel.resetAll()`);
+        }
+        break;
+
+      case 'COPY_STATE':
+        lines.push(`${indent}viewModel.update${capitalize(act.targetVar)}(uiState.${act.sourceVar})`);
+        break;
+
+      case 'CLEAR_STRING':
+        lines.push(`${indent}viewModel.update${capitalize(act.targetVar)}("")`);
         break;
 
       case 'NAVIGATE':
@@ -60,8 +78,17 @@ export function transpileActions(
         lines.push(`${indent}viewModel.remove${capitalize(act.targetListVar)}Item(${act.indexBinding})`);
         break;
 
+      case 'CLEAR_LIST':
+        lines.push(`${indent}viewModel.clear${capitalize(act.targetListVar)}()`);
+        break;
+
       case 'SHOW_SNACKBAR':
-        lines.push(`${indent}// Snackbar: ${act.message}`);
+        lines.push(`${indent}android.widget.Toast.makeText(context, "${act.message}", android.widget.Toast.LENGTH_SHORT).show()`);
+        break;
+
+      case 'OPEN_URL':
+        lines.push(`${indent}val browserIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("${act.url}"))`);
+        lines.push(`${indent}context.startActivity(browserIntent)`);
         break;
     }
   }

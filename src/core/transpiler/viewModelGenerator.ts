@@ -9,7 +9,7 @@ export function generateViewModelKotlin(
 ): string {
   const vmName = `${screen.name}ViewModel`;
   const stateClassName = `${screen.name}UiState`;
-  const methods = generateViewModelMethods(screen.stateVariables);
+  const methods = generateViewModelMethods(screen.stateVariables, stateClassName);
 
   return `package ${packageName}.ui.screens
 
@@ -37,7 +37,7 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function generateViewModelMethods(vars: StateVariable[]): string {
+function generateViewModelMethods(vars: StateVariable[], stateClassName: string): string {
   if (!vars || vars.length === 0) return '';
 
   const funcs: string[] = [];
@@ -61,6 +61,10 @@ function generateViewModelMethods(vars: StateVariable[]): string {
 
     fun set${capName}(value: Int) {
         _uiState.update { it.copy(${v.name} = value) }
+    }
+
+    fun reset${capName}() {
+        _uiState.update { it.copy(${v.name} = ${v.initialValue ?? 0}) }
     }`);
     } else if (v.type === 'Boolean') {
       funcs.push(`
@@ -72,6 +76,10 @@ function generateViewModelMethods(vars: StateVariable[]): string {
 
     fun set${capName}(value: Boolean) {
         _uiState.update { it.copy(${v.name} = value) }
+    }
+
+    fun reset${capName}() {
+        _uiState.update { it.copy(${v.name} = ${Boolean(v.initialValue)}) }
     }`);
     } else if (v.type === 'String') {
       funcs.push(`
@@ -79,8 +87,16 @@ function generateViewModelMethods(vars: StateVariable[]): string {
         _uiState.update { currentState ->
             currentState.copy(${v.name} = newValue)
         }
+    }
+
+    fun reset${capName}() {
+        _uiState.update { it.copy(${v.name} = "${v.initialValue ?? ''}") }
     }`);
     } else if (v.type === 'List<String>') {
+      const initItems = Array.isArray(v.initialValue)
+        ? v.initialValue.map(x => `"${x}"`).join(', ')
+        : '';
+
       funcs.push(`
     fun add${capName}Item(item: String) {
         if (item.isNotBlank()) {
@@ -98,9 +114,22 @@ function generateViewModelMethods(vars: StateVariable[]): string {
             }
             currentState.copy(${v.name} = updated)
         }
+    }
+
+    fun clear${capName}() {
+        _uiState.update { it.copy(${v.name} = emptyList()) }
+    }
+
+    fun reset${capName}() {
+        _uiState.update { it.copy(${v.name} = listOf(${initItems})) }
     }`);
     }
   }
+
+  funcs.push(`
+    fun resetAll() {
+        _uiState.value = ${stateClassName}()
+    }`);
 
   return funcs.join('\n');
 }

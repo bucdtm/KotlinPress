@@ -40,11 +40,16 @@ export type LogicAction =
   | { type: 'INCREMENT_STATE'; targetVar: string; amount: number }
   | { type: 'DECREMENT_STATE'; targetVar: string; amount: number }
   | { type: 'TOGGLE_BOOLEAN'; targetVar: string }
+  | { type: 'RESET_STATE'; targetVar?: string }
+  | { type: 'COPY_STATE'; sourceVar: string; targetVar: string }
+  | { type: 'CLEAR_STRING'; targetVar: string }
   | { type: 'NAVIGATE'; destinationRoute: string }
   | { type: 'NAVIGATE_BACK' }
   | { type: 'APPEND_LIST'; targetListVar: string; valueBinding?: string; staticValue?: string }
   | { type: 'REMOVE_FROM_LIST'; targetListVar: string; indexBinding: string }
-  | { type: 'SHOW_SNACKBAR'; message: string };
+  | { type: 'CLEAR_LIST'; targetListVar: string }
+  | { type: 'SHOW_SNACKBAR'; message: string }
+  | { type: 'OPEN_URL'; url: string };
 
 export interface EventHandlers {
   onClick?: LogicAction[];

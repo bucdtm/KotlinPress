@@ -85,4 +85,12 @@ describe('Modern Android Architecture Transpiler (UiState + ViewModel + UDF)', (
     expect(homeScreenCode).toContain('import androidx.compose.ui.res.stringResource');
     expect(homeScreenCode).toContain('stringResource(R.string.');
   });
+
+  it('transpila acciones avanzadas de lógica (Reset, Clear, Toast, URL)', () => {
+    const homeScreen = sampleAppAST.screens.find(s => s.id === 'home')!;
+    const vmCode = generateViewModelKotlin(homeScreen, 'com.example.test');
+    expect(vmCode).toContain('fun resetContador()');
+    expect(vmCode).toContain('fun resetNombre()');
+    expect(vmCode).toContain('fun resetAll()');
+  });
 });

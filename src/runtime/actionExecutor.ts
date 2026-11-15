@@ -89,6 +89,52 @@ export function executeActions(
           }
           break;
         }
+
+        case 'RESET_STATE': {
+          if (act.targetVar) {
+            // Se restaura a valor por defecto según el tipo o 0/vacío
+            if (typeof newValues[act.targetVar] === 'number') newValues[act.targetVar] = 0;
+            else if (typeof newValues[act.targetVar] === 'boolean') newValues[act.targetVar] = false;
+            else if (Array.isArray(newValues[act.targetVar])) newValues[act.targetVar] = [];
+            else newValues[act.targetVar] = '';
+          }
+          break;
+        }
+
+        case 'COPY_STATE': {
+          if (act.sourceVar && act.targetVar) {
+            newValues[act.targetVar] = newValues[act.sourceVar];
+          }
+          break;
+        }
+
+        case 'CLEAR_STRING': {
+          if (act.targetVar) {
+            newValues[act.targetVar] = '';
+          }
+          break;
+        }
+
+        case 'CLEAR_LIST': {
+          if (act.targetListVar) {
+            newValues[act.targetListVar] = [];
+          }
+          break;
+        }
+
+        case 'SHOW_SNACKBAR': {
+          if (act.message && typeof window !== 'undefined') {
+            console.log(`[KotlinPress Toast]: ${act.message}`);
+          }
+          break;
+        }
+
+        case 'OPEN_URL': {
+          if (act.url && typeof window !== 'undefined') {
+            window.open(act.url, '_blank');
+          }
+          break;
+        }
       }
     }
 

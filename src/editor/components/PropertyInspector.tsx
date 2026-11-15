@@ -4,7 +4,6 @@ import { UIComponentNode, LogicAction } from '../../core/ast/schema.ts';
 import {
   Box,
   Trash2,
-  Plus,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -13,6 +12,12 @@ import {
   Italic,
   Underline,
   Strikethrough,
+  ChevronUp,
+  ChevronDown,
+  RotateCcw,
+  Zap,
+  PlusCircle,
+  Eraser,
 } from 'lucide-react';
 
 function findNode(root: UIComponentNode, id: string): UIComponentNode | null {
@@ -37,6 +42,20 @@ export const PropertyInspector: React.FC = () => {
   } = useEditorStore();
 
   const [activeTab, setActiveTab] = useState<'props' | 'modifiers' | 'logic'>('props');
+
+  // Estado del creador interactivo de lógica
+  const [actionCategory, setActionCategory] = useState<'state' | 'nav' | 'list' | 'feedback'>('state');
+  const [builderActionType, setBuilderActionType] = useState<string>('INCREMENT_STATE');
+  const [builderTargetVar, setBuilderTargetVar] = useState<string>('');
+  const [builderSourceVar, setBuilderSourceVar] = useState<string>('');
+  const [builderAmount, setBuilderAmount] = useState<number>(1);
+  const [builderDirectValue, setBuilderDirectValue] = useState<string>('');
+  const [builderDestRoute, setBuilderDestRoute] = useState<string>('');
+  const [builderToastMsg, setBuilderToastMsg] = useState<string>('¡Operación realizada con éxito!');
+  const [builderLinkUrl, setBuilderLinkUrl] = useState<string>('https://kotlinlang.org');
+  const [builderListMode, setBuilderListMode] = useState<'var' | 'static'>('var');
+  const [builderListVar, setBuilderListVar] = useState<string>('');
+  const [builderListStaticText, setBuilderListStaticText] = useState<string>('');
 
   const screen = ast.screens.find(s => s.id === selectedScreenId);
   const selectedNode = screen && selectedComponentId ? findNode(screen.rootComponent, selectedComponentId) : null;
@@ -70,6 +89,28 @@ export const PropertyInspector: React.FC = () => {
     }
   };
 
+  const handleMoveAction = (index: number, direction: 'up' | 'down') => {
+    if (!selectedNode.events?.onClick) return;
+    const actions = [...selectedNode.events.onClick];
+    if (direction === 'up' && index > 0) {
+      const temp = actions[index];
+      actions[index] = actions[index - 1];
+      actions[index - 1] = temp;
+    } else if (direction === 'down' && index < actions.length - 1) {
+      const temp = actions[index];
+      actions[index] = actions[index + 1];
+      actions[index + 1] = temp;
+    }
+    const updatedEvents = { ...selectedNode.events, onClick: actions };
+    const { ast: currentAst } = useEditorStore.getState();
+    const newAst = JSON.parse(JSON.stringify(currentAst));
+    const targetScreen = newAst.screens.find((s: any) => s.id === selectedScreenId);
+    if (targetScreen) {
+      findNode(targetScreen.rootComponent, selectedNode.id)!.events = updatedEvents;
+      useEditorStore.setState({ ast: newAst });
+    }
+  };
+
   const handleRemoveAction = (index: number) => {
     if (!selectedNode.events?.onClick) return;
     const newActions = [...selectedNode.events.onClick];
@@ -81,6 +122,114 @@ export const PropertyInspector: React.FC = () => {
     if (targetScreen) {
       findNode(targetScreen.rootComponent, selectedNode.id)!.events = updatedEvents;
       useEditorStore.setState({ ast: newAst });
+    }
+  };
+
+  const handleCreateActionFromBuilder = () => {
+    if (!screen) return;
+    const defaultVar = screen.stateVariables[0]?.name || 'temp';
+    const numVar = screen.stateVariables.find(v => v.type === 'Int' || v.type === 'Float')?.name || defaultVar;
+    const strVar = screen.stateVariables.find(v => v.type === 'String')?.name || defaultVar;
+    const listVar = screen.stateVariables.find(v => v.type.startsWith('List'))?.name || 'items';
+
+    switch (builderActionType) {
+      case 'INCREMENT_STATE':
+        handleAddAction({
+          type: 'INCREMENT_STATE',
+          targetVar: builderTargetVar || numVar,
+          amount: Number(builderAmount) || 1,
+        });
+        break;
+
+      case 'DECREMENT_STATE':
+        handleAddAction({
+          type: 'DECREMENT_STATE',
+          targetVar: builderTargetVar || numVar,
+          amount: Number(builderAmount) || 1,
+        });
+        break;
+
+      case 'SET_STATE':
+        handleAddAction({
+          type: 'SET_STATE',
+          targetVar: builderTargetVar || strVar,
+          value: builderDirectValue || '',
+        });
+        break;
+
+      case 'CLEAR_STRING':
+        handleAddAction({
+          type: 'CLEAR_STRING',
+          targetVar: builderTargetVar || strVar,
+        });
+        break;
+
+      case 'COPY_STATE':
+        handleAddAction({
+          type: 'COPY_STATE',
+          sourceVar: builderSourceVar || strVar,
+          targetVar: builderTargetVar || strVar,
+        });
+        break;
+
+      case 'TOGGLE_BOOLEAN': {
+        const boolVar = screen.stateVariables.find(v => v.type === 'Boolean')?.name || defaultVar;
+        handleAddAction({
+          type: 'TOGGLE_BOOLEAN',
+          targetVar: builderTargetVar || boolVar,
+        });
+        break;
+      }
+
+      case 'RESET_STATE':
+        handleAddAction({
+          type: 'RESET_STATE',
+          targetVar: builderTargetVar ? builderTargetVar : undefined,
+        });
+        break;
+
+      case 'NAVIGATE': {
+        const dest = builderDestRoute || ast.screens.find(s => s.id !== selectedScreenId)?.route || 'home';
+        handleAddAction({
+          type: 'NAVIGATE',
+          destinationRoute: dest,
+        });
+        break;
+      }
+
+      case 'NAVIGATE_BACK':
+        handleAddAction({ type: 'NAVIGATE_BACK' });
+        break;
+
+      case 'OPEN_URL':
+        handleAddAction({
+          type: 'OPEN_URL',
+          url: builderLinkUrl || 'https://kotlinlang.org',
+        });
+        break;
+
+      case 'APPEND_LIST':
+        handleAddAction({
+          type: 'APPEND_LIST',
+          targetListVar: builderTargetVar || listVar,
+          valueBinding: builderListMode === 'var' ? (builderListVar || strVar) : undefined,
+          staticValue: builderListMode === 'static' ? (builderListStaticText || 'Nuevo Elemento') : undefined,
+        });
+        break;
+
+      case 'CLEAR_LIST':
+        handleAddAction({
+          type: 'CLEAR_LIST',
+          targetListVar: builderTargetVar || listVar,
+        });
+        break;
+
+      case 'SHOW_SNACKBAR':
+        handleAddAction({
+          type: 'SHOW_SNACKBAR',
+          message: builderToastMsg || 'Mensaje de notificación',
+        });
+        break;
     }
   };
 
@@ -837,86 +986,513 @@ export const PropertyInspector: React.FC = () => {
           </div>
         )}
 
-        {/* LOGIC TAB */}
+        {/* LOGIC TAB COMPLETO */}
         {activeTab === 'logic' && (
-          <div className="flex flex-col gap-2.5">
-            <span className="text-[11px] font-medium text-zinc-400">Acciones al pulsar (onClick):</span>
-
+          <div className="flex flex-col gap-3">
+            {/* 1. Secuencia de Acciones Configuradas */}
             <div className="flex flex-col gap-1.5">
-              {(selectedNode.events?.onClick || []).length === 0 ? (
-                <span className="text-zinc-500 text-[11px] italic">Sin acciones configuradas.</span>
-              ) : (
-                selectedNode.events?.onClick?.map((act, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-2 rounded bg-[#18181c] border border-zinc-800 text-[11px]"
-                  >
-                    <div>
-                      <span className="font-mono text-[#b299ff]">{act.type}</span>
-                      <div className="text-zinc-400 text-[10px]">
-                        {'targetVar' in act && `Variable: ${act.targetVar} `}
-                        {'amount' in act && `(±${act.amount})`}
-                        {'destinationRoute' in act && `Ruta: /${act.destinationRoute}`}
-                        {'targetListVar' in act && `Lista: ${act.targetListVar}`}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleRemoveAction(idx)}
-                      className="text-zinc-500 hover:text-rose-400 p-1"
-                    >
-                      ✕
-                    </button>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-zinc-300">
+                  Secuencia de Acciones ({selectedNode.events?.onClick?.length || 0})
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono">onClick</span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                {(selectedNode.events?.onClick || []).length === 0 ? (
+                  <div className="p-3 rounded-lg border border-zinc-800 bg-[#0f0f12] text-center text-zinc-500 text-[11px] italic">
+                    Sin acciones configuradas. Elige una acción abajo o pulsa una plantilla rápida.
                   </div>
-                ))
-              )}
+                ) : (
+                  selectedNode.events?.onClick?.map((act, idx) => {
+                    let desc = act.type as string;
+                    if (act.type === 'INCREMENT_STATE') desc = `Sumar +${act.amount} a "${act.targetVar}"`;
+                    else if (act.type === 'DECREMENT_STATE') desc = `Restar -${act.amount} a "${act.targetVar}"`;
+                    else if (act.type === 'SET_STATE') desc = `Asignar "${act.targetVar}" = ${act.isBinding ? `uiState.${act.value}` : `"${act.value}"`}`;
+                    else if (act.type === 'CLEAR_STRING') desc = `Limpiar texto de "${act.targetVar}"`;
+                    else if (act.type === 'TOGGLE_BOOLEAN') desc = `Alternar booleano "${act.targetVar}"`;
+                    else if (act.type === 'RESET_STATE') desc = `Reiniciar ${act.targetVar ? `"${act.targetVar}"` : 'todas las variables'}`;
+                    else if (act.type === 'COPY_STATE') desc = `Copiar "${act.sourceVar}" → "${act.targetVar}"`;
+                    else if (act.type === 'APPEND_LIST') desc = `Añadir a lista "${act.targetListVar}" (${act.valueBinding ? `uiState.${act.valueBinding}` : `"${act.staticValue}"`})`;
+                    else if (act.type === 'CLEAR_LIST') desc = `Vaciar lista "${act.targetListVar}"`;
+                    else if (act.type === 'REMOVE_FROM_LIST') desc = `Eliminar item de "${act.targetListVar}"`;
+                    else if (act.type === 'NAVIGATE') desc = `Navegar a pantalla /${act.destinationRoute}`;
+                    else if (act.type === 'NAVIGATE_BACK') desc = `Volver a la pantalla anterior`;
+                    else if (act.type === 'SHOW_SNACKBAR') desc = `Mostrar Toast: "${act.message}"`;
+                    else if (act.type === 'OPEN_URL') desc = `Abrir enlace web: ${act.url}`;
+
+                    return (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2 rounded bg-[#18181c] border border-zinc-800 text-[11px] group"
+                      >
+                        <div className="flex items-center gap-2 truncate mr-1">
+                          <span className="w-4 h-4 rounded-full bg-zinc-800 text-zinc-400 flex items-center justify-center font-mono text-[9px] shrink-0">
+                            {idx + 1}
+                          </span>
+                          <div className="flex flex-col truncate">
+                            <span className="font-medium text-zinc-200 truncate">{desc}</span>
+                            <span className="text-[9px] text-[#b299ff] font-mono">{act.type}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button
+                            disabled={idx === 0}
+                            onClick={() => handleMoveAction(idx, 'up')}
+                            className="p-1 text-zinc-500 hover:text-white disabled:opacity-20 rounded"
+                            title="Mover arriba"
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                          </button>
+                          <button
+                            disabled={idx === (selectedNode.events?.onClick?.length ?? 0) - 1}
+                            onClick={() => handleMoveAction(idx, 'down')}
+                            className="p-1 text-zinc-500 hover:text-white disabled:opacity-20 rounded"
+                            title="Mover abajo"
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveAction(idx)}
+                            className="p-1 text-zinc-500 hover:text-rose-400 rounded"
+                            title="Eliminar acción"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
-            <div className="border-t border-zinc-800 pt-2.5 flex flex-col gap-1.5">
-              <span className="text-zinc-400 text-[11px] font-medium">Añadir acción predefinida:</span>
+            {/* 2. Creador de Acciones Personalizadas */}
+            <div className="border-t border-zinc-800 pt-3 flex flex-col gap-2.5">
+              <span className="text-[11px] font-semibold text-zinc-300">
+                Añadir Acción Personalizada
+              </span>
 
-              <div className="grid grid-cols-1 gap-1">
-                {screen?.stateVariables.filter(v => v.type === 'Int').map(v => (
-                  <button
-                    key={v.id}
-                    onClick={() => handleAddAction({ type: 'INCREMENT_STATE', targetVar: v.name, amount: 1 })}
-                    className="flex items-center gap-1.5 text-left p-1.5 rounded bg-[#18181c] hover:bg-[#222228] border border-zinc-800 text-zinc-300 transition-colors"
+              {/* Categorías de Acción */}
+              <div className="grid grid-cols-4 gap-1 bg-[#0f0f12] p-1 rounded-md border border-zinc-800 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActionCategory('state');
+                    setBuilderActionType('INCREMENT_STATE');
+                  }}
+                  className={`py-1 rounded font-medium transition ${
+                    actionCategory === 'state'
+                      ? 'bg-[#7f52ff] text-white shadow-xs'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  Estado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActionCategory('nav');
+                    setBuilderActionType('NAVIGATE');
+                  }}
+                  className={`py-1 rounded font-medium transition ${
+                    actionCategory === 'nav'
+                      ? 'bg-[#7f52ff] text-white shadow-xs'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  Navegación
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActionCategory('list');
+                    setBuilderActionType('APPEND_LIST');
+                  }}
+                  className={`py-1 rounded font-medium transition ${
+                    actionCategory === 'list'
+                      ? 'bg-[#7f52ff] text-white shadow-xs'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  Listas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActionCategory('feedback');
+                    setBuilderActionType('SHOW_SNACKBAR');
+                  }}
+                  className={`py-1 rounded font-medium transition ${
+                    actionCategory === 'feedback'
+                      ? 'bg-[#7f52ff] text-white shadow-xs'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  Feedback
+                </button>
+              </div>
+
+              {/* Formulario del Creador según categoría */}
+              <div className="p-2.5 rounded-lg border border-zinc-800 bg-[#141418] flex flex-col gap-2">
+                {/* Selector de Tipo de Acción */}
+                <div>
+                  <label className="block text-[10px] text-zinc-400 mb-0.5">Tipo de Acción</label>
+                  <select
+                    value={builderActionType}
+                    onChange={(e) => setBuilderActionType(e.target.value)}
+                    className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
                   >
-                    <Plus className="w-3 h-3 text-[#7f52ff]" />
-                    <span>Sumar 1 a <b className="text-zinc-100 font-medium">{v.name}</b></span>
-                  </button>
-                ))}
+                    {actionCategory === 'state' && (
+                      <>
+                        <option value="INCREMENT_STATE">Sumar / Incrementar número</option>
+                        <option value="DECREMENT_STATE">Restar / Decrementar número</option>
+                        <option value="SET_STATE">Asignar valor directo</option>
+                        <option value="CLEAR_STRING">Limpiar campo de texto ("")</option>
+                        <option value="COPY_STATE">Copiar valor entre variables</option>
+                        <option value="TOGGLE_BOOLEAN">Alternar booleano (Toggle true/false)</option>
+                        <option value="RESET_STATE">Reiniciar a valores por defecto</option>
+                      </>
+                    )}
+                    {actionCategory === 'nav' && (
+                      <>
+                        <option value="NAVIGATE">Navegar a otra pantalla</option>
+                        <option value="NAVIGATE_BACK">Volver a la pantalla anterior</option>
+                        <option value="OPEN_URL">Abrir enlace web en navegador</option>
+                      </>
+                    )}
+                    {actionCategory === 'list' && (
+                      <>
+                        <option value="APPEND_LIST">Añadir elemento a la lista</option>
+                        <option value="CLEAR_LIST">Vaciar lista completa</option>
+                      </>
+                    )}
+                    {actionCategory === 'feedback' && (
+                      <option value="SHOW_SNACKBAR">Mostrar Toast / Notificación</option>
+                    )}
+                  </select>
+                </div>
 
-                {screen?.stateVariables.filter(v => v.type === 'Int').map(v => (
-                  <button
-                    key={`dec-${v.id}`}
-                    onClick={() => handleAddAction({ type: 'DECREMENT_STATE', targetVar: v.name, amount: 1 })}
-                    className="flex items-center gap-1.5 text-left p-1.5 rounded bg-[#18181c] hover:bg-[#222228] border border-zinc-800 text-zinc-300 transition-colors"
-                  >
-                    <Plus className="w-3 h-3 text-[#7f52ff]" />
-                    <span>Restar 1 a <b className="text-zinc-100 font-medium">{v.name}</b></span>
-                  </button>
-                ))}
+                {/* Parámetros dinámicos */}
+                {(builderActionType === 'INCREMENT_STATE' || builderActionType === 'DECREMENT_STATE') && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-zinc-400 mb-0.5">Variable Numérica</label>
+                      <select
+                        value={builderTargetVar}
+                        onChange={(e) => setBuilderTargetVar(e.target.value)}
+                        className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
+                      >
+                        <option value="">Seleccionar variable...</option>
+                        {screen?.stateVariables.filter(v => v.type === 'Int' || v.type === 'Float').map(v => (
+                          <option key={v.id} value={v.name}>{v.name} ({v.type})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-400 mb-0.5">Cantidad</label>
+                      <input
+                        type="number"
+                        value={builderAmount}
+                        onChange={(e) => setBuilderAmount(Number(e.target.value) || 1)}
+                        className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-white outline-none focus:border-[#7f52ff]"
+                      />
+                    </div>
+                  </div>
+                )}
 
-                {ast.screens
-                  .filter(s => s.id !== selectedScreenId)
-                  .map(targetScreen => (
-                    <button
-                      key={targetScreen.id}
-                      onClick={() => handleAddAction({ type: 'NAVIGATE', destinationRoute: targetScreen.route })}
-                      className="flex items-center gap-1.5 text-left p-1.5 rounded bg-[#18181c] hover:bg-[#222228] border border-zinc-800 text-zinc-300 transition-colors"
+                {builderActionType === 'SET_STATE' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-zinc-400 mb-0.5">Variable Destino</label>
+                      <select
+                        value={builderTargetVar}
+                        onChange={(e) => setBuilderTargetVar(e.target.value)}
+                        className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
+                      >
+                        <option value="">Seleccionar variable...</option>
+                        {screen?.stateVariables.map(v => (
+                          <option key={v.id} value={v.name}>{v.name} ({v.type})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-400 mb-0.5">Nuevo Valor</label>
+                      <input
+                        type="text"
+                        value={builderDirectValue}
+                        onChange={(e) => setBuilderDirectValue(e.target.value)}
+                        placeholder="Valor a asignar"
+                        className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-white outline-none focus:border-[#7f52ff]"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {builderActionType === 'CLEAR_STRING' && (
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-0.5">Variable de Texto a Limpiar</label>
+                    <select
+                      value={builderTargetVar}
+                      onChange={(e) => setBuilderTargetVar(e.target.value)}
+                      className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
                     >
-                      <Plus className="w-3 h-3 text-[#7f52ff]" />
-                      <span>Navegar a <b className="text-zinc-100 font-medium">{targetScreen.name}</b></span>
-                    </button>
-                  ))}
+                      <option value="">Seleccionar variable String...</option>
+                      {screen?.stateVariables.filter(v => v.type === 'String').map(v => (
+                        <option key={v.id} value={v.name}>{v.name} (String)</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {builderActionType === 'COPY_STATE' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-zinc-400 mb-0.5">Variable Origen</label>
+                      <select
+                        value={builderSourceVar}
+                        onChange={(e) => setBuilderSourceVar(e.target.value)}
+                        className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
+                      >
+                        <option value="">Seleccionar origen...</option>
+                        {screen?.stateVariables.map(v => (
+                          <option key={v.id} value={v.name}>{v.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-400 mb-0.5">Variable Destino</label>
+                      <select
+                        value={builderTargetVar}
+                        onChange={(e) => setBuilderTargetVar(e.target.value)}
+                        className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
+                      >
+                        <option value="">Seleccionar destino...</option>
+                        {screen?.stateVariables.map(v => (
+                          <option key={v.id} value={v.name}>{v.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {builderActionType === 'TOGGLE_BOOLEAN' && (
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-0.5">Variable Booleana</label>
+                    <select
+                      value={builderTargetVar}
+                      onChange={(e) => setBuilderTargetVar(e.target.value)}
+                      className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
+                    >
+                      <option value="">Seleccionar variable Boolean...</option>
+                      {screen?.stateVariables.filter(v => v.type === 'Boolean').map(v => (
+                        <option key={v.id} value={v.name}>{v.name} (Boolean)</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {builderActionType === 'RESET_STATE' && (
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-0.5">Objetivo del Reset</label>
+                    <select
+                      value={builderTargetVar}
+                      onChange={(e) => setBuilderTargetVar(e.target.value)}
+                      className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
+                    >
+                      <option value="">Todas las variables de la pantalla</option>
+                      {screen?.stateVariables.map(v => (
+                        <option key={v.id} value={v.name}>Solo "{v.name}"</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {builderActionType === 'NAVIGATE' && (
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-0.5">Pantalla de Destino</label>
+                    <select
+                      value={builderDestRoute}
+                      onChange={(e) => setBuilderDestRoute(e.target.value)}
+                      className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
+                    >
+                      <option value="">Seleccionar pantalla...</option>
+                      {ast.screens.map(s => (
+                        <option key={s.id} value={s.route}>{s.name} (/{s.route})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {builderActionType === 'OPEN_URL' && (
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-0.5">URL de Destino</label>
+                    <input
+                      type="url"
+                      value={builderLinkUrl}
+                      onChange={(e) => setBuilderLinkUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-white outline-none focus:border-[#7f52ff]"
+                    />
+                  </div>
+                )}
+
+                {builderActionType === 'APPEND_LIST' && (
+                  <div className="flex flex-col gap-1.5">
+                    <div>
+                      <label className="block text-[10px] text-zinc-400 mb-0.5">Lista Destino</label>
+                      <select
+                        value={builderTargetVar}
+                        onChange={(e) => setBuilderTargetVar(e.target.value)}
+                        className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
+                      >
+                        <option value="">Seleccionar lista...</option>
+                        {screen?.stateVariables.filter(v => v.type.startsWith('List')).map(v => (
+                          <option key={v.id} value={v.name}>{v.name} ({v.type})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-[10px] text-zinc-400 my-0.5">
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="listMode"
+                          checked={builderListMode === 'var'}
+                          onChange={() => setBuilderListMode('var')}
+                          className="accent-[#7f52ff]"
+                        />
+                        Desde Variable de Entrada
+                      </label>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="listMode"
+                          checked={builderListMode === 'static'}
+                          onChange={() => setBuilderListMode('static')}
+                          className="accent-[#7f52ff]"
+                        />
+                        Texto Estático
+                      </label>
+                    </div>
+
+                    {builderListMode === 'var' ? (
+                      <select
+                        value={builderListVar}
+                        onChange={(e) => setBuilderListVar(e.target.value)}
+                        className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
+                      >
+                        <option value="">Variable origen (ej: nuevaTarea)...</option>
+                        {screen?.stateVariables.filter(v => v.type === 'String').map(v => (
+                          <option key={v.id} value={v.name}>{v.name} (String)</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={builderListStaticText}
+                        onChange={(e) => setBuilderListStaticText(e.target.value)}
+                        placeholder="Texto a añadir"
+                        className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-white outline-none focus:border-[#7f52ff]"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {builderActionType === 'CLEAR_LIST' && (
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-0.5">Lista a Vaciar</label>
+                    <select
+                      value={builderTargetVar}
+                      onChange={(e) => setBuilderTargetVar(e.target.value)}
+                      className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-100 outline-none focus:border-[#7f52ff]"
+                    >
+                      <option value="">Seleccionar lista...</option>
+                      {screen?.stateVariables.filter(v => v.type.startsWith('List')).map(v => (
+                        <option key={v.id} value={v.name}>{v.name} ({v.type})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {builderActionType === 'SHOW_SNACKBAR' && (
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-0.5">Mensaje de Toast / Notificación</label>
+                    <input
+                      type="text"
+                      value={builderToastMsg}
+                      onChange={(e) => setBuilderToastMsg(e.target.value)}
+                      placeholder="ej: ¡Guardado con éxito!"
+                      className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-white outline-none focus:border-[#7f52ff]"
+                    />
+                  </div>
+                )}
+
+                {/* Botón de Inserción */}
+                <button
+                  type="button"
+                  onClick={handleCreateActionFromBuilder}
+                  className="flex items-center justify-center gap-1.5 w-full py-1.5 bg-[#7f52ff] hover:bg-[#9068ff] active:bg-[#6f42ef] text-white rounded font-medium text-xs transition mt-1"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Añadir Acción a la Secuencia</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Atajos y Plantillas Rápidas con 1 Clic */}
+            <div className="border-t border-zinc-800 pt-2.5 flex flex-col gap-1.5">
+              <span className="text-zinc-400 text-[11px] font-medium flex items-center gap-1">
+                <Zap className="w-3 h-3 text-amber-400" /> Plantillas Rápidas (1 Clic):
+              </span>
+
+              <div className="grid grid-cols-2 gap-1 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => handleAddAction({ type: 'RESET_STATE' })}
+                  className="flex items-center gap-1 p-1.5 rounded bg-[#18181c] hover:bg-[#222228] border border-zinc-800 text-zinc-300 transition"
+                  title="Reinicia todas las variables a su estado original"
+                >
+                  <RotateCcw className="w-3 h-3 text-rose-400 shrink-0" />
+                  <span className="truncate">Resetear Todo</span>
+                </button>
 
                 <button
+                  type="button"
                   onClick={() => handleAddAction({ type: 'NAVIGATE_BACK' })}
-                  className="flex items-center gap-1.5 text-left p-1.5 rounded bg-[#18181c] hover:bg-[#222228] border border-zinc-800 text-zinc-300 transition-colors"
+                  className="flex items-center gap-1 p-1.5 rounded bg-[#18181c] hover:bg-[#222228] border border-zinc-800 text-zinc-300 transition"
+                  title="Regresa a la pantalla anterior"
                 >
-                  <Plus className="w-3 h-3 text-[#7f52ff]" />
-                  <span>Volver atrás (popBackStack)</span>
+                  <ChevronUp className="w-3 h-3 text-sky-400 shrink-0 -rotate-90" />
+                  <span className="truncate">Volver Atrás</span>
                 </button>
+
+                {screen?.stateVariables.filter(v => v.type === 'String').slice(0, 1).map(v => (
+                  <button
+                    key={`clear-${v.id}`}
+                    type="button"
+                    onClick={() => handleAddAction({ type: 'CLEAR_STRING', targetVar: v.name })}
+                    className="flex items-center gap-1 p-1.5 rounded bg-[#18181c] hover:bg-[#222228] border border-zinc-800 text-zinc-300 transition"
+                    title={`Limpia el texto de ${v.name}`}
+                  >
+                    <Eraser className="w-3 h-3 text-amber-400 shrink-0" />
+                    <span className="truncate">Limpiar {v.name}</span>
+                  </button>
+                ))}
+
+                {screen?.stateVariables.filter(v => v.type.startsWith('List')).slice(0, 1).map(v => (
+                  <button
+                    key={`clearlist-${v.id}`}
+                    type="button"
+                    onClick={() => handleAddAction({ type: 'CLEAR_LIST', targetListVar: v.name })}
+                    className="flex items-center gap-1 p-1.5 rounded bg-[#18181c] hover:bg-[#222228] border border-zinc-800 text-zinc-300 transition"
+                    title={`Vacía la lista ${v.name}`}
+                  >
+                    <Trash2 className="w-3 h-3 text-rose-400 shrink-0" />
+                    <span className="truncate">Vaciar Lista</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>

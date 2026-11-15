@@ -27,7 +27,7 @@ import {
 
 export default function App() {
   const { ast, loadAST, resetToSample, selectScreen, selectComponent } = useEditorStore();
-  const [leftTab, setLeftTab] = useState<'palette' | 'layers' | 'screens' | 'theme'>('palette');
+  const [leftTab, setLeftTab] = useState<'components' | 'screens' | 'theme'>('components');
   const [rightTab, setRightTab] = useState<'inspector' | 'code' | 'json'>('inspector');
   const [isExporting, setIsExporting] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
@@ -280,24 +280,14 @@ export default function App() {
           {/* Selector de pestañas izquierda */}
           <div className="flex border-b border-zinc-800 text-xs font-medium bg-[#121215]">
             <button
-              onClick={() => setLeftTab('palette')}
+              onClick={() => setLeftTab('components')}
               className={`flex-1 py-2 text-center transition ${
-                leftTab === 'palette'
+                leftTab === 'components'
                   ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#16161b]'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               Componentes
-            </button>
-            <button
-              onClick={() => setLeftTab('layers')}
-              className={`flex-1 py-2 text-center transition ${
-                leftTab === 'layers'
-                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#16161b]'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              Capas
             </button>
             <button
               onClick={() => setLeftTab('screens')}
@@ -321,17 +311,31 @@ export default function App() {
             </button>
           </div>
 
-          {/* Contenido pestaña izquierda */}
-          <div className="flex-1 overflow-y-auto">
-            {leftTab === 'palette' && <ComponentPalette />}
-            {leftTab === 'layers' && <LayerTree />}
+          {/* Contenido pestaña izquierda: Componentes arriba + Capas debajo */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {leftTab === 'components' && (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Paleta de Componentes */}
+                <div className="flex-1 overflow-y-auto">
+                  <ComponentPalette />
+                </div>
+                {/* Jerarquía de Capas debajo */}
+                <div className="h-64 border-t border-zinc-800/90 bg-[#0d0d10] overflow-y-auto shrink-0 shadow-inner">
+                  <LayerTree />
+                </div>
+              </div>
+            )}
             {leftTab === 'screens' && (
-              <div className="flex flex-col">
+              <div className="flex-1 overflow-y-auto flex flex-col">
                 <ScreenManager />
                 <StateManager />
               </div>
             )}
-            {leftTab === 'theme' && <ThemeManager />}
+            {leftTab === 'theme' && (
+              <div className="flex-1 overflow-y-auto">
+                <ThemeManager />
+              </div>
+            )}
           </div>
         </aside>
 

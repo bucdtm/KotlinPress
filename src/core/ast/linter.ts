@@ -291,6 +291,58 @@ function lintNode(
             message: `La acción de incremento se aplica sobre "${action.targetVar}" que es de tipo ${target.type}. Debe ser Int.`,
           });
         }
+      } else if (action.type === 'COPY_STATE') {
+        if (!varMap.has(action.sourceVar) || !varMap.has(action.targetVar)) {
+          issues.push({
+            id: `missing-copy-var-${node.id}-${i}`,
+            severity: 'error',
+            screenId: screen.id,
+            screenName: screen.name,
+            componentId: node.id,
+            componentName: node.name || node.type,
+            title: 'Variable no encontrada para copiar',
+            message: `La acción intenta copiar de "${action.sourceVar}" a "${action.targetVar}", pero alguna de las variables no existe.`,
+          });
+        }
+      } else if (action.type === 'CLEAR_STRING') {
+        if (!varMap.has(action.targetVar)) {
+          issues.push({
+            id: `missing-clear-var-${node.id}-${i}`,
+            severity: 'error',
+            screenId: screen.id,
+            screenName: screen.name,
+            componentId: node.id,
+            componentName: node.name || node.type,
+            title: 'Variable a limpiar no encontrada',
+            message: `No se encontró la variable "${action.targetVar}" para limpiar.`,
+          });
+        }
+      } else if (action.type === 'CLEAR_LIST') {
+        if (!varMap.has(action.targetListVar)) {
+          issues.push({
+            id: `missing-clearlist-var-${node.id}-${i}`,
+            severity: 'error',
+            screenId: screen.id,
+            screenName: screen.name,
+            componentId: node.id,
+            componentName: node.name || node.type,
+            title: 'Lista a vaciar no encontrada',
+            message: `No se encontró la lista "${action.targetListVar}" para vaciar.`,
+          });
+        }
+      } else if (action.type === 'OPEN_URL') {
+        if (!action.url || !action.url.startsWith('http')) {
+          issues.push({
+            id: `invalid-url-${node.id}-${i}`,
+            severity: 'warning',
+            screenId: screen.id,
+            screenName: screen.name,
+            componentId: node.id,
+            componentName: node.name || node.type,
+            title: 'URL externa inválida',
+            message: 'La acción de abrir enlace debe contener una URL válida que empiece por https:// o http://.',
+          });
+        }
       }
     }
   }
