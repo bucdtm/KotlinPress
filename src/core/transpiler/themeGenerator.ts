@@ -6,6 +6,7 @@ export function generateColorKotlin(packageName: string, theme: AppThemeConfig):
   const t = theme.tertiaryColor.replace('#', '').toUpperCase();
   const bg = theme.backgroundColor.replace('#', '').toUpperCase();
   const surf = theme.surfaceColor.replace('#', '').toUpperCase();
+  const text = (theme.textColor || (theme.isDark ? '#FFFFFF' : '#1D1B20')).replace('#', '').toUpperCase();
 
   return `package ${packageName}.ui.theme
 
@@ -16,6 +17,45 @@ val SecondaryColor = Color(0xFF${s})
 val TertiaryColor = Color(0xFF${t})
 val BackgroundColor = Color(0xFF${bg})
 val SurfaceColor = Color(0xFF${surf})
+val TextColor = Color(0xFF${text})
+`;
+}
+
+export function generateShapeKotlin(packageName: string, theme: AppThemeConfig): string {
+  let small = 8;
+  let medium = 16;
+  let large = 28;
+
+  if (theme.buttonShape === 'sharp') {
+    small = 2;
+    medium = 4;
+    large = 6;
+  } else if (theme.buttonShape === 'semi-rounded') {
+    small = 4;
+    medium = 8;
+    large = 12;
+  } else if (theme.buttonShape === 'rounded') {
+    small = 6;
+    medium = 12;
+    large = 16;
+  } else {
+    // pill
+    small = 8;
+    medium = 20;
+    large = 32;
+  }
+
+  return `package ${packageName}.ui.theme
+
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Shapes
+import androidx.compose.ui.unit.dp
+
+val AppShapes = Shapes(
+    small = RoundedCornerShape(${small}.dp),
+    medium = RoundedCornerShape(${medium}.dp),
+    large = RoundedCornerShape(${large}.dp)
+)
 `;
 }
 
@@ -33,7 +73,10 @@ private val DarkColorScheme = darkColorScheme(
     secondary = SecondaryColor,
     tertiary = TertiaryColor,
     background = BackgroundColor,
-    surface = SurfaceColor
+    surface = SurfaceColor,
+    onPrimary = Color.White,
+    onBackground = TextColor,
+    onSurface = TextColor
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -41,7 +84,10 @@ private val LightColorScheme = lightColorScheme(
     secondary = SecondaryColor,
     tertiary = TertiaryColor,
     background = BackgroundColor,
-    surface = SurfaceColor
+    surface = SurfaceColor,
+    onPrimary = Color.White,
+    onBackground = TextColor,
+    onSurface = TextColor
 )
 
 @Composable
@@ -53,24 +99,29 @@ fun ${appName}Theme(
 
     MaterialTheme(
         colorScheme = colorScheme,
+        shapes = AppShapes,
         content = content
     )
 }
 `;
 }
 
-export function generateMainActivityKotlin(packageName: string, appName: string): string {
+export function generateMainActivityKotlin(packageName: string, appName: string, theme: AppThemeConfig): string {
+  const isGradient = theme.backgroundType === 'gradient';
+
   return `package ${packageName}
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import ${packageName}.navigation.AppNavigation
-import ${packageName}.ui.theme.${appName}Theme
+import ${packageName}.ui.theme.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,7 +129,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             ${appName}Theme {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize()${isGradient ? '\n                        .background(Brush.verticalGradient(listOf(BackgroundColor, SurfaceColor)))' : ''},
                     color = MaterialTheme.colorScheme.background
                 ) {
                     AppNavigation()

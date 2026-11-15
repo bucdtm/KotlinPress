@@ -14,8 +14,14 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
   runtimeState,
   setRuntimeState,
 }) => {
-  const { selectedComponentId, selectComponent, interactiveMode } = useEditorStore();
+  const { ast, selectedComponentId, selectComponent, interactiveMode } = useEditorStore();
+  const theme = ast.theme;
   const isSelected = !interactiveMode && selectedComponentId === node.id;
+
+  let buttonRadiusClass = 'rounded-full';
+  if (theme.buttonShape === 'sharp') buttonRadiusClass = 'rounded-[4px]';
+  else if (theme.buttonShape === 'semi-rounded') buttonRadiusClass = 'rounded-[8px]';
+  else if (theme.buttonShape === 'rounded') buttonRadiusClass = 'rounded-[14px]';
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -122,8 +128,12 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       return (
         <div
           onClick={handleClick}
-          style={style}
-          className={`bg-[#1c1c22] border border-zinc-700/60 rounded-2xl p-4 shadow-sm ${layoutClasses} ${selectionOutline}`}
+          style={{
+            backgroundColor: theme.surfaceColor,
+            color: theme.textColor || (theme.isDark ? '#E6E1E5' : '#1D1B20'),
+            ...style,
+          }}
+          className={`border border-zinc-700/40 rounded-2xl p-4 shadow-sm ${layoutClasses} ${selectionOutline}`}
         >
           {isSelected && (
             <span className="absolute -top-2.5 left-2 bg-[#7f52ff] text-[9px] font-mono font-medium text-white px-1.5 py-0.2 rounded z-10 shadow-sm">
@@ -158,10 +168,11 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         <p
           onClick={handleClick}
           style={{
-            ...style,
+            color: node.props.textColor || theme.textColor || (theme.isDark ? '#E6E1E5' : '#1D1B20'),
             fontSize: node.props.fontSize ? `${node.props.fontSize}px` : undefined,
+            ...style,
           }}
-          className={`${fontWeight} text-zinc-100 ${layoutClasses} ${selectionOutline} cursor-pointer select-none leading-snug`}
+          className={`${fontWeight} ${layoutClasses} ${selectionOutline} cursor-pointer select-none leading-snug`}
         >
           {String(displayText)}
         </p>
@@ -172,8 +183,12 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       return (
         <button
           onClick={handleClick}
-          style={style}
-          className={`bg-[#6750a4] hover:bg-[#7963b6] active:scale-[0.98] text-white font-medium py-2.5 px-6 rounded-full shadow-sm transition-all text-sm ${layoutClasses} ${selectionOutline}`}
+          style={{
+            backgroundColor: theme.primaryColor,
+            color: '#FFFFFF',
+            ...style,
+          }}
+          className={`hover:opacity-90 active:scale-[0.98] font-medium py-2.5 px-6 shadow-sm transition-all text-sm ${buttonRadiusClass} ${layoutClasses} ${selectionOutline}`}
         >
           {node.props.label || 'Botón'}
         </button>
@@ -184,8 +199,12 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       return (
         <button
           onClick={handleClick}
-          style={style}
-          className={`border border-[#79747e] text-[#d0bcff] hover:bg-[#6750a4]/10 active:scale-[0.98] font-medium py-2 px-5 rounded-full transition-all text-sm ${layoutClasses} ${selectionOutline}`}
+          style={{
+            borderColor: theme.primaryColor,
+            color: theme.primaryColor,
+            ...style,
+          }}
+          className={`border hover:bg-black/10 active:scale-[0.98] font-medium py-2 px-5 transition-all text-sm ${buttonRadiusClass} ${layoutClasses} ${selectionOutline}`}
         >
           {node.props.label || 'Botón'}
         </button>
@@ -198,7 +217,10 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
       return (
         <div onClick={handleClick} className={`relative my-1 ${layoutClasses} ${selectionOutline}`}>
-          <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+          <label
+            style={{ color: theme.primaryColor }}
+            className="block text-[11px] font-medium mb-1"
+          >
             {node.props.label || 'Campo'}
           </label>
           <input
@@ -213,7 +235,11 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
               }
             }}
             placeholder={node.props.placeholder || ''}
-            className="w-full bg-[#16161b] border border-zinc-700 focus:border-[#7f52ff] rounded-md px-3 py-1.5 text-xs text-white outline-none transition-colors"
+            style={{
+              backgroundColor: theme.surfaceColor,
+              color: theme.textColor || (theme.isDark ? '#FFFFFF' : '#1D1B20'),
+            }}
+            className="w-full border border-zinc-700/80 focus:border-[#7f52ff] rounded-md px-3 py-1.5 text-xs outline-none transition-colors"
           />
         </div>
       );
@@ -234,9 +260,12 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                 }));
               }
             }}
+            style={{
+              backgroundColor: isChecked ? theme.primaryColor : undefined,
+            }}
             className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors ${
-              isChecked ? 'bg-[#6750a4] justify-end' : 'bg-zinc-700 justify-start'
-            }`}
+              !isChecked ? 'bg-zinc-700' : ''
+            } ${isChecked ? 'justify-end' : 'justify-start'}`}
           >
             <div className="bg-white w-5 h-5 rounded-full shadow-sm" />
           </div>

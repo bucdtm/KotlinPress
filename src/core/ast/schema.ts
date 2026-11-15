@@ -111,12 +111,23 @@ export interface ScreenDefinition {
   rootComponent: UIComponentNode;
 }
 
+export type ButtonShapeType = 'pill' | 'rounded' | 'semi-rounded' | 'sharp';
+export type ButtonVariantType = 'filled' | 'tonal' | 'outlined';
+export type FontFamilyType = 'sans' | 'rounded' | 'serif' | 'mono';
+export type BackgroundType = 'solid' | 'gradient' | 'surface';
+
 export interface AppThemeConfig {
   primaryColor: string;
   secondaryColor: string;
   tertiaryColor: string;
   surfaceColor: string;
   backgroundColor: string;
+  textColor?: string;
+  isDark?: boolean;
+  backgroundType?: BackgroundType;
+  buttonShape?: ButtonShapeType;
+  buttonVariant?: ButtonVariantType;
+  fontFamily?: FontFamilyType;
 }
 
 export interface AppAST {

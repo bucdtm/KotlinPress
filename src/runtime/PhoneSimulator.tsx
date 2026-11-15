@@ -50,6 +50,30 @@ export const PhoneSimulator: React.FC = () => {
     });
   };
 
+  const theme = ast.theme;
+
+  let screenBackground: React.CSSProperties = {
+    backgroundColor: theme.backgroundColor || '#141218',
+    color: theme.textColor || (theme.isDark ? '#E6E1E5' : '#1D1B20'),
+  };
+
+  if (theme.backgroundType === 'gradient') {
+    screenBackground = {
+      backgroundImage: `linear-gradient(to bottom, ${theme.backgroundColor || '#141218'}, ${theme.surfaceColor || '#1D1B20'})`,
+      color: theme.textColor || (theme.isDark ? '#E6E1E5' : '#1D1B20'),
+    };
+  } else if (theme.backgroundType === 'surface') {
+    screenBackground = {
+      backgroundColor: theme.surfaceColor || '#1D1B20',
+      color: theme.textColor || (theme.isDark ? '#E6E1E5' : '#1D1B20'),
+    };
+  }
+
+  let fontClass = 'font-sans';
+  if (theme.fontFamily === 'mono') fontClass = 'font-mono';
+  if (theme.fontFamily === 'serif') fontClass = 'font-serif';
+  if (theme.fontFamily === 'rounded') fontClass = 'font-sans tracking-wide';
+
   return (
     <div className="flex flex-col items-center justify-center h-full p-4 select-none">
       {/* Barra superior de control del simulador */}
@@ -101,7 +125,10 @@ export const PhoneSimulator: React.FC = () => {
         </div>
 
         {/* Pantalla del dispositivo */}
-        <div className="relative flex-1 bg-[#101014] rounded-[28px] overflow-hidden flex flex-col border border-zinc-800/60">
+        <div
+          style={screenBackground}
+          className={`relative flex-1 rounded-[28px] overflow-hidden flex flex-col border border-zinc-800/60 ${fontClass} transition-all duration-300`}
+        >
           {/* Barra de Estado Android */}
           <div className="h-7 flex items-center justify-between px-5 pt-1 text-[11px] font-medium text-zinc-400 select-none z-20">
             <span className="font-mono">12:30</span>

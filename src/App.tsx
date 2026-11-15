@@ -5,6 +5,7 @@ import { LayerTree } from './editor/components/LayerTree.tsx';
 import { ScreenManager } from './editor/components/ScreenManager.tsx';
 import { StateManager } from './editor/components/StateManager.tsx';
 import { PropertyInspector } from './editor/components/PropertyInspector.tsx';
+import { ThemeManager } from './editor/components/ThemeManager.tsx';
 import { KotlinViewer } from './editor/codeview/KotlinViewer.tsx';
 import { PhoneSimulator } from './runtime/PhoneSimulator.tsx';
 import { downloadAndroidProjectZip } from './core/exporter/zipPackager.ts';
@@ -18,11 +19,12 @@ import {
   Upload,
   Download,
   Smartphone,
+  Palette,
 } from 'lucide-react';
 
 export default function App() {
   const { ast, loadAST, resetToSample } = useEditorStore();
-  const [leftTab, setLeftTab] = useState<'palette' | 'layers' | 'screens'>('palette');
+  const [leftTab, setLeftTab] = useState<'palette' | 'layers' | 'screens' | 'theme'>('palette');
   const [rightTab, setRightTab] = useState<'inspector' | 'code' | 'json'>('inspector');
   const [isExporting, setIsExporting] = useState(false);
 
@@ -166,7 +168,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setLeftTab('screens')}
-              className={`flex-1 py-2 text-center flex items-center justify-center gap-1.5 transition ${
+              className={`flex-1 py-2 text-center flex items-center justify-center gap-1 transition ${
                 leftTab === 'screens'
                   ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
                   : 'text-zinc-400 hover:text-zinc-200'
@@ -174,6 +176,17 @@ export default function App() {
             >
               <Smartphone className="w-3.5 h-3.5" />
               <span>Pantallas</span>
+            </button>
+            <button
+              onClick={() => setLeftTab('theme')}
+              className={`flex-1 py-2 text-center flex items-center justify-center gap-1 transition ${
+                leftTab === 'theme'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span>Tema</span>
             </button>
           </div>
 
@@ -194,6 +207,7 @@ export default function App() {
                 <StateManager />
               </>
             )}
+            {leftTab === 'theme' && <ThemeManager />}
           </div>
         </aside>
 

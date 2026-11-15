@@ -24,6 +24,9 @@ describe('Android Project ZIP Packager', () => {
     const pkgPath = sampleAppAST.appInfo.packageName.replace(/\./g, '/');
     expect(files).toContain(`${appName}/app/src/main/java/${pkgPath}/MainActivity.kt`);
     expect(files).toContain(`${appName}/app/src/main/java/${pkgPath}/navigation/AppNavigation.kt`);
+    expect(files).toContain(`${appName}/app/src/main/java/${pkgPath}/ui/theme/Color.kt`);
+    expect(files).toContain(`${appName}/app/src/main/java/${pkgPath}/ui/theme/Shape.kt`);
+    expect(files).toContain(`${appName}/app/src/main/java/${pkgPath}/ui/theme/Theme.kt`);
     expect(files).toContain(`${appName}/app/src/main/java/${pkgPath}/ui/screens/HomeScreenUiState.kt`);
     expect(files).toContain(`${appName}/app/src/main/java/${pkgPath}/ui/screens/HomeScreenViewModel.kt`);
     expect(files).toContain(`${appName}/app/src/main/java/${pkgPath}/ui/screens/HomeScreen.kt`);

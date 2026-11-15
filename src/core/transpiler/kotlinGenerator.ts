@@ -3,7 +3,7 @@ import { generateScreenKotlin } from './screenGenerator.ts';
 import { generateUiStateKotlin } from './uiStateGenerator.ts';
 import { generateViewModelKotlin } from './viewModelGenerator.ts';
 import { generateNavHostKotlin } from './navHostGenerator.ts';
-import { generateColorKotlin, generateThemeKotlin, generateMainActivityKotlin } from './themeGenerator.ts';
+import { generateColorKotlin, generateShapeKotlin, generateThemeKotlin, generateMainActivityKotlin } from './themeGenerator.ts';
 
 export interface GeneratedFile {
   path: string;       // Ruta relativa dentro del paquete (ej: "ui/screens/HomeScreen.kt")
@@ -46,13 +46,15 @@ export function transpileAppToKotlin(ast: AppAST): TranspilationResult {
 
   const navHostCode = generateNavHostKotlin(ast);
   const colorCode = generateColorKotlin(pkg, ast.theme);
+  const shapeCode = generateShapeKotlin(pkg, ast.theme);
   const themeCode = generateThemeKotlin(pkg, appName);
-  const mainActivityCode = generateMainActivityKotlin(pkg, appName);
+  const mainActivityCode = generateMainActivityKotlin(pkg, appName, ast.theme);
 
   const allFiles: GeneratedFile[] = [
     { path: 'MainActivity.kt', content: mainActivityCode },
     { path: 'navigation/AppNavigation.kt', content: navHostCode },
     { path: 'ui/theme/Color.kt', content: colorCode },
+    { path: 'ui/theme/Shape.kt', content: shapeCode },
     { path: 'ui/theme/Theme.kt', content: themeCode },
   ];
 

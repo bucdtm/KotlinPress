@@ -7,8 +7,10 @@ import {
   ModifierConfig,
   StateVariable,
   ComponentType,
+  AppThemeConfig,
 } from '../../core/ast/schema.ts';
 import { sampleAppAST } from '../../core/ast/sampleApp.ts';
+import { THEME_PRESETS } from '../../core/ast/themePresets.ts';
 
 interface EditorState {
   ast: AppAST;
@@ -30,6 +32,9 @@ interface EditorState {
 
   addScreen: (name: string, route: string) => void;
   deleteScreen: (screenId: string) => void;
+
+  updateTheme: (theme: Partial<AppThemeConfig>) => void;
+  applyThemePreset: (presetId: string) => void;
 
   loadAST: (ast: AppAST) => void;
   resetToSample: () => void;
@@ -214,6 +219,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     newAst.screens = newAst.screens.filter(s => s.id !== screenId);
     const nextScreen = newAst.screens[0].id;
     set({ ast: newAst, selectedScreenId: nextScreen, selectedComponentId: null });
+  },
+
+  updateTheme: (themeUpdate) => {
+    const { ast } = get();
+    const newAst = JSON.parse(JSON.stringify(ast)) as AppAST;
+    newAst.theme = { ...newAst.theme, ...themeUpdate };
+    set({ ast: newAst });
+  },
+
+  applyThemePreset: (presetId) => {
+    const preset = THEME_PRESETS.find(p => p.id === presetId);
+    if (!preset) return;
+    const { ast } = get();
+    const newAst = JSON.parse(JSON.stringify(ast)) as AppAST;
+    newAst.theme = { ...preset.config };
+    set({ ast: newAst });
   },
 
   loadAST: (ast) => set({ ast, selectedScreenId: ast.screens[0]?.id || '', selectedComponentId: null }),

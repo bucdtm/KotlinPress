@@ -9,10 +9,13 @@ describe('Modern Android Architecture Transpiler (UiState + ViewModel + UDF)', (
     const result = transpileAppToKotlin(sampleAppAST);
 
     expect(result.screens).toHaveLength(2);
-    // 4 base files + 3 files per screen * 2 screens = 10 files
-    expect(result.allFiles.length).toBe(10);
+    // 5 base files (MainActivity, AppNavigation, Color, Shape, Theme) + 3 files per screen * 2 screens = 11 files
+    expect(result.allFiles.length).toBe(11);
 
     const filePaths = result.allFiles.map(f => f.path);
+    expect(filePaths).toContain('ui/theme/Color.kt');
+    expect(filePaths).toContain('ui/theme/Shape.kt');
+    expect(filePaths).toContain('ui/theme/Theme.kt');
     expect(filePaths).toContain('ui/screens/HomeScreenUiState.kt');
     expect(filePaths).toContain('ui/screens/HomeScreenViewModel.kt');
     expect(filePaths).toContain('ui/screens/HomeScreen.kt');
