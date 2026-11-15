@@ -157,12 +157,23 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         ? runtimeState.values[node.props.textBinding] ?? ''
         : node.props.text ?? '';
 
-      const fontWeight =
-        node.props.fontWeight === 'Bold'
-          ? 'font-bold'
-          : node.props.fontWeight === 'Medium'
-          ? 'font-medium'
-          : 'font-normal';
+      let align = 'text-left';
+      if (node.props.textAlign === 'Center') align = 'text-center';
+      else if (node.props.textAlign === 'End') align = 'text-right';
+      else if (node.props.textAlign === 'Justify') align = 'text-justify';
+
+      let weight = 'font-normal';
+      if (node.props.fontWeight === 'Medium') weight = 'font-medium';
+      else if (node.props.fontWeight === 'SemiBold') weight = 'font-semibold';
+      else if (node.props.fontWeight === 'Bold') weight = 'font-bold';
+      else if (node.props.fontWeight === 'ExtraBold') weight = 'font-extrabold';
+
+      const fontStyle = node.props.fontStyle === 'Italic' ? 'italic' : 'normal';
+      let textDecoration = 'none';
+      if (node.props.textDecoration === 'Underline') textDecoration = 'underline';
+      else if (node.props.textDecoration === 'LineThrough') textDecoration = 'line-through';
+
+      const widthClass = node.props.textAlign && !node.modifier.width ? 'w-full' : '';
 
       return (
         <p
@@ -170,9 +181,13 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
           style={{
             color: node.props.textColor || theme.textColor || (theme.isDark ? '#E6E1E5' : '#1D1B20'),
             fontSize: node.props.fontSize ? `${node.props.fontSize}px` : undefined,
+            fontStyle,
+            textDecoration,
+            letterSpacing: node.props.letterSpacing ? `${node.props.letterSpacing}px` : undefined,
+            lineHeight: node.props.lineHeight ? `${node.props.lineHeight}px` : undefined,
             ...style,
           }}
-          className={`${fontWeight} ${layoutClasses} ${selectionOutline} cursor-pointer select-none leading-snug`}
+          className={`${weight} ${align} ${widthClass} ${layoutClasses} ${selectionOutline} cursor-pointer select-none leading-snug`}
         >
           {String(displayText)}
         </p>

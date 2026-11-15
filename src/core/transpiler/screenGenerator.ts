@@ -30,7 +30,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -132,6 +136,20 @@ export function generateComponent(node: UIComponentNode, indentLevel: number): s
       params.push(`modifier = ${modCode}`);
       if (node.props.fontSize) params.push(`fontSize = ${node.props.fontSize}.sp`);
       if (node.props.fontWeight) params.push(`fontWeight = FontWeight.${node.props.fontWeight}`);
+      if (node.props.fontStyle === 'Italic') params.push('fontStyle = FontStyle.Italic');
+      if (node.props.textAlign) params.push(`textAlign = TextAlign.${node.props.textAlign}`);
+      if (node.props.textDecoration === 'Underline') params.push('textDecoration = TextDecoration.Underline');
+      if (node.props.textDecoration === 'LineThrough') params.push('textDecoration = TextDecoration.LineThrough');
+      if (node.props.textColor) {
+        const hex = node.props.textColor.replace('#', '').toUpperCase();
+        params.push(`color = Color(0xFF${hex})`);
+      }
+      if (node.props.letterSpacing) params.push(`letterSpacing = ${node.props.letterSpacing}.sp`);
+      if (node.props.lineHeight) params.push(`lineHeight = ${node.props.lineHeight}.sp`);
+      if (node.props.maxLines) {
+        params.push(`maxLines = ${node.props.maxLines}`);
+        params.push('overflow = TextOverflow.Ellipsis');
+      }
 
       return `${indent}Text(\n${params.map(p => `${indent}    ${p}`).join(',\n')}\n${indent})`;
     }

@@ -66,12 +66,18 @@ export type LeafComponentType =
 export type ComponentType = LayoutContainerType | LeafComponentType;
 
 export interface ComponentProps {
-  // Textos y etiquetas
+  // Textos y tipografía
   text?: string;
   textBinding?: string;
   fontSize?: number;           // sp
-  fontWeight?: 'Normal' | 'Medium' | 'Bold';
+  fontWeight?: 'Normal' | 'Medium' | 'SemiBold' | 'Bold' | 'ExtraBold';
+  fontStyle?: 'Normal' | 'Italic';
+  textAlign?: 'Start' | 'Center' | 'End' | 'Justify';
+  textDecoration?: 'None' | 'Underline' | 'LineThrough';
   textColor?: string;
+  letterSpacing?: number;      // sp
+  lineHeight?: number;         // sp
+  maxLines?: number;
   
   // Botones e inputs
   label?: string;
