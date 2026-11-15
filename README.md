@@ -21,11 +21,37 @@
   - **Modo Editar:** Haz clic sobre cualquier componente para seleccionarlo e inspeccionar sus propiedades visuales y modificadores.
   - **Modo Play:** Interactúa con la app en memoria: pulsa botones, escribe en los campos de texto, comprueba la navegación entre pantallas y agrega elementos a listas dinámicas.
 
+- **Importación de Proyectos Completos (.ZIP y Carpetas):**  
+  Carga proyectos enteros de Android Studio o KotlinPress (tanto en archivo comprimido `.zip` como seleccionando directamente la carpeta del proyecto). El motor de ingeniería inversa extrae automáticamente los metadatos de Gradle, los recursos `strings.xml`, las pantallas `@Composable`, los modelos de datos y la navegación.
+
+- **Importador y Adaptador Inverso de Código Kotlin:**  
+  Pega código Kotlin suelto o sube archivos `.kt`: detecta y adapta al instante funciones visuales `@Composable` (reconstruyendo su árbol de nodos y variables de estado) o clases de modelo (`data class`, `enum class`).
+
+- **Gestor de Clases y Modelos Kotlin:**  
+  Diseña y edita clases personalizadas dentro del IDE con plantillas para *Data Class*, *Enum Class*, *Singleton Object* y *Utility Class*, exportándose automáticamente a `models/` dentro del ZIP compilable.
+
+- **Linter de Arquitectura en Tiempo Real:**  
+  Diagnostica en vivo la salud del proyecto: detecta variables huérfanas, componentes vacíos, rutas de navegación no registradas y problemas estructurales de Compose con botón de auto-enfoque.
+
+- **Reorganización de Jerarquía de Capas (Drag & Drop):**  
+  Reordena y reestructura componentes arrastrando elementos en el árbol de capas, con protección estricta contra anidamientos inválidos dentro de componentes hoja.
+
+- **Constructor Visual de Lógica de Eventos:**  
+  Configura secuencias de acciones en botones sin escribir código: navegación, actualización de estados, agregación y limpieza de listas dinámicas, y reseteo de formularios.
+
+- **Motor Integral de Temas y Estilos:**  
+  Personaliza paletas de colores (primario, secundario, terciario, superficie), tipos de fondo (sólido, degradado o superficie), esquinas de botones (*pill*, *rounded*, *sharp*) y tipografía.
+
+- **Gestión Automática de Recursos (`strings.xml` e Imágenes):**  
+  Sanitiza y centraliza todos los textos en `res/values/strings.xml` referenciados mediante `stringResource(R.string.<id>)` e incluye soporte para imágenes con `painterResource(R.drawable.<id>)`.
+
+- **Componentes de Compose Soportados:** Column, Row, Box, Card, LazyColumn, Text, OutlinedTextField, Button, OutlinedButton, RadioButton, Switch, Checkbox, Image, Spacer, Divider.
+
 - **Generador de Proyecto Android Studio (.ZIP):**  
   Empaqueta con un solo clic una estructura estándar completa de Android Studio:
   - Gradle 8.5+ con Kotlin DSL (`build.gradle.kts`, `settings.gradle.kts`)
   - Version Catalog (`gradle/libs.versions.toml`) con Jetpack Compose BOM 2024+, Navigation Compose y Lifecycle Runtime
-  - `AndroidManifest.xml`, recursos (`res/values/strings.xml`) y código fuente Kotlin bajo su paquete oficial.
+  - `AndroidManifest.xml`, recursos (`res/values/strings.xml`, drawables vectoriales) y código fuente Kotlin bajo su paquete oficial.
 
 - **Importación y Exportación de Proyectos JSON:**  
   Guarda tus proyectos como archivos `.json` en tu ordenador y cárgalos en cualquier momento.
