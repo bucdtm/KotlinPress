@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useEditorStore } from './editor/state/editorStore.ts';
 import { ComponentPalette } from './editor/components/ComponentPalette.tsx';
 import { LayerTree } from './editor/components/LayerTree.tsx';
@@ -9,24 +9,33 @@ import { ThemeManager } from './editor/components/ThemeManager.tsx';
 import { KotlinViewer } from './editor/codeview/KotlinViewer.tsx';
 import { PhoneSimulator } from './runtime/PhoneSimulator.tsx';
 import { downloadAndroidProjectZip } from './core/exporter/zipPackager.ts';
+import { lintAppAST, DiagnosticIssue } from './core/ast/linter.ts';
 import {
   Code2,
   SlidersHorizontal,
-  Layers,
   FileJson,
   DownloadCloud,
   RotateCcw,
   Upload,
   Download,
-  Smartphone,
-  Palette,
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  X,
+  ArrowRight,
 } from 'lucide-react';
 
 export default function App() {
-  const { ast, loadAST, resetToSample } = useEditorStore();
+  const { ast, loadAST, resetToSample, selectScreen, selectComponent } = useEditorStore();
   const [leftTab, setLeftTab] = useState<'palette' | 'layers' | 'screens' | 'theme'>('palette');
   const [rightTab, setRightTab] = useState<'inspector' | 'code' | 'json'>('inspector');
   const [isExporting, setIsExporting] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
+  // Linter en tiempo real sobre la arquitectura y el AST
+  const issues = useMemo(() => lintAppAST(ast), [ast]);
+  const errorCount = issues.filter(i => i.severity === 'error').length;
+  const warningCount = issues.filter(i => i.severity === 'warning').length;
 
   const handleExportJSON = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(ast, null, 2));
@@ -69,6 +78,17 @@ export default function App() {
     }
   };
 
+  const handleFixIssue = (issue: DiagnosticIssue) => {
+    if (issue.screenId) {
+      selectScreen(issue.screenId);
+    }
+    if (issue.componentId) {
+      selectComponent(issue.componentId);
+      setRightTab('inspector');
+    }
+    setShowDiagnostics(false);
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen bg-[#09090b] text-zinc-100 overflow-hidden select-none">
       {/* Barra superior de herramientas - Estilo IDE Profesional */}
@@ -91,10 +111,37 @@ export default function App() {
           <div className="flex items-center gap-2 text-xs">
             <span className="font-medium text-zinc-300">{ast.appInfo.appName}</span>
             <span className="text-[11px] text-zinc-500 font-mono">({ast.appInfo.packageName})</span>
-            <span className="text-[10px] text-zinc-500 bg-zinc-800/60 px-1.5 py-0.5 rounded font-mono">
-              Offline
-            </span>
           </div>
+
+          {/* Badge de Diagnóstico y Errores (Linter en vivo) */}
+          <button
+            onClick={() => setShowDiagnostics(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer ${
+              errorCount > 0
+                ? 'bg-rose-950/60 border border-rose-800/80 text-rose-300 hover:bg-rose-900/60'
+                : warningCount > 0
+                ? 'bg-amber-950/50 border border-amber-800/70 text-amber-300 hover:bg-amber-900/50'
+                : 'bg-emerald-950/40 border border-emerald-800/50 text-emerald-400 hover:bg-emerald-900/40'
+            }`}
+            title="Ver diagnósticos y validaciones de código"
+          >
+            {errorCount > 0 ? (
+              <>
+                <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                <span>{errorCount} {errorCount === 1 ? 'error' : 'errores'}</span>
+              </>
+            ) : warningCount > 0 ? (
+              <>
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                <span>{warningCount} {warningCount === 1 ? 'aviso' : 'avisos'}</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>0 errores</span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Acciones de proyecto */}
@@ -138,88 +185,165 @@ export default function App() {
         </div>
       </header>
 
-      {/* Workspace de 3 paneles */}
+      {/* Modal / Panel de Diagnósticos */}
+      {showDiagnostics && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-[#121215] border border-zinc-700 rounded-xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm text-zinc-100">Diagnóstico de Código y Arquitectura</span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                  {issues.length} {issues.length === 1 ? 'incidencia' : 'incidencias'}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowDiagnostics(false)}
+                className="p-1 text-zinc-400 hover:text-white rounded hover:bg-zinc-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5">
+              {issues.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-400 mb-2" />
+                  <p className="text-zinc-200 font-medium text-sm">¡Tu diseño está perfecto!</p>
+                  <p className="text-zinc-500 text-xs mt-1 max-w-xs">
+                    No se detectaron variables huérfanas, rutas rotas ni errores estructurales en Jetpack Compose.
+                  </p>
+                </div>
+              ) : (
+                issues.map(issue => (
+                  <div
+                    key={issue.id}
+                    className={`p-3 rounded-lg border flex flex-col gap-1.5 ${
+                      issue.severity === 'error'
+                        ? 'bg-rose-950/30 border-rose-800/60'
+                        : issue.severity === 'warning'
+                        ? 'bg-amber-950/25 border-amber-800/50'
+                        : 'bg-zinc-800/40 border-zinc-700/60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {issue.severity === 'error' ? (
+                          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                        ) : issue.severity === 'warning' ? (
+                          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4 text-zinc-400 shrink-0" />
+                        )}
+                        <span className="font-medium text-xs text-zinc-200">{issue.title}</span>
+                      </div>
+                      {issue.componentId && (
+                        <button
+                          onClick={() => handleFixIssue(issue)}
+                          className="flex items-center gap-1 text-[11px] text-[#7f52ff] hover:text-[#9068ff] font-medium shrink-0"
+                        >
+                          <span>Localizar</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-zinc-300 leading-relaxed pl-6">
+                      {issue.message}
+                    </p>
+
+                    {issue.suggestion && (
+                      <div className="pl-6 text-[11px] text-zinc-400 bg-black/20 p-1.5 rounded mt-0.5">
+                        <strong className="text-zinc-300">Tip:</strong> {issue.suggestion}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="p-3 border-t border-zinc-800 flex justify-end bg-[#0f0f12]">
+              <button
+                onClick={() => setShowDiagnostics(false)}
+                className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs rounded font-medium transition"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cuerpo principal en 3 columnas */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Panel Izquierdo: Estructura, Paleta y Pantallas */}
-        <aside className="w-72 border-r border-zinc-800/80 bg-[#121215] flex flex-col shrink-0">
-          {/* Segmented Control de pestañas izquierdas */}
-          <div className="flex border-b border-zinc-800 text-xs font-medium bg-[#0f0f12]">
+        {/* PANEL IZQUIERDO: Paleta / Árbol / Pantallas / Temas */}
+        <aside className="w-72 border-r border-zinc-800/80 bg-[#101013] flex flex-col shrink-0 z-20">
+          {/* Selector de pestañas izquierda */}
+          <div className="flex border-b border-zinc-800 text-xs font-medium bg-[#121215]">
             <button
               onClick={() => setLeftTab('palette')}
-              className={`flex-1 py-2 text-center flex items-center justify-center gap-1.5 transition ${
+              className={`flex-1 py-2 text-center transition ${
                 leftTab === 'palette'
-                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#16161b]'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Componentes</span>
+              Componentes
             </button>
             <button
               onClick={() => setLeftTab('layers')}
-              className={`flex-1 py-2 text-center flex items-center justify-center gap-1.5 transition ${
+              className={`flex-1 py-2 text-center transition ${
                 leftTab === 'layers'
-                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#16161b]'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>Árbol</span>
+              Capas
             </button>
             <button
               onClick={() => setLeftTab('screens')}
-              className={`flex-1 py-2 text-center flex items-center justify-center gap-1 transition ${
+              className={`flex-1 py-2 text-center transition ${
                 leftTab === 'screens'
-                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#16161b]'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>Pantallas</span>
+              Pantallas
             </button>
             <button
               onClick={() => setLeftTab('theme')}
-              className={`flex-1 py-2 text-center flex items-center justify-center gap-1 transition ${
+              className={`flex-1 py-2 text-center transition ${
                 leftTab === 'theme'
-                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#16161b]'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Palette className="w-3.5 h-3.5" />
-              <span>Tema</span>
+              Temas
             </button>
           </div>
 
           {/* Contenido pestaña izquierda */}
           <div className="flex-1 overflow-y-auto">
-            {leftTab === 'palette' && (
-              <>
-                <ComponentPalette />
-                <div className="border-t border-zinc-800">
-                  <LayerTree />
-                </div>
-              </>
-            )}
+            {leftTab === 'palette' && <ComponentPalette />}
             {leftTab === 'layers' && <LayerTree />}
             {leftTab === 'screens' && (
-              <>
+              <div className="flex flex-col">
                 <ScreenManager />
                 <StateManager />
-              </>
+              </div>
             )}
             {leftTab === 'theme' && <ThemeManager />}
           </div>
         </aside>
 
-        {/* Panel Central: Lienzo y Simulador Móvil */}
-        <main className="flex-1 flex flex-col items-center justify-center bg-[#09090b] relative overflow-hidden">
+        {/* PANEL CENTRAL: Canvas / Simulador Móvil Interactivo */}
+        <main className="flex-1 bg-[#09090b] flex flex-col items-center justify-center p-6 relative overflow-auto">
           <PhoneSimulator />
         </main>
 
-        {/* Panel Derecho: Inspector de Propiedades, Código Kotlin o AST */}
-        <aside className="w-96 border-l border-zinc-800/80 bg-[#121215] flex flex-col shrink-0">
-          {/* Segmented Control de pestañas derechas */}
-          <div className="flex border-b border-zinc-800 text-xs font-medium bg-[#0f0f12]">
+        {/* PANEL DERECHO: Inspector de Propiedades / Visor de Código / AST JSON */}
+        <aside className="w-80 border-l border-zinc-800/80 bg-[#101013] flex flex-col shrink-0 z-20">
+          {/* Selector de pestañas derecha */}
+          <div className="flex border-b border-zinc-800 text-xs font-medium bg-[#121215]">
             <button
               onClick={() => setRightTab('inspector')}
               className={`flex-1 py-2 text-center flex items-center justify-center gap-1.5 transition ${

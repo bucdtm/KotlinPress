@@ -33,6 +33,7 @@ export const sampleAppAST: AppAST = {
         { id: 'v1', name: 'contador', type: 'Int', initialValue: 0 },
         { id: 'v2', name: 'nombre', type: 'String', initialValue: 'Mundo' },
         { id: 'v3', name: 'activo', type: 'Boolean', initialValue: true },
+        { id: 'v4', name: 'categoria', type: 'String', initialValue: 'General' },
       ],
       rootComponent: {
         id: 'root-1',
@@ -40,7 +41,7 @@ export const sampleAppAST: AppAST = {
         name: 'Contenedor Principal',
         modifier: {
           fillMaxSize: true,
-          paddingAll: 24,
+          paddingAll: 20,
         },
         props: {
           verticalArrangement: 'Center',
@@ -48,15 +49,59 @@ export const sampleAppAST: AppAST = {
         },
         children: [
           {
+            id: 'img-logo',
+            type: 'Image',
+            name: 'Logo App',
+            modifier: { width: 80, height: 80, paddingBottom: 12 },
+            props: {
+              imageResource: 'sample_image',
+              contentDescription: 'Logotipo de la aplicación',
+            },
+          },
+          {
             id: 'txt-title',
             type: 'Text',
             name: 'Título Saludo',
-            modifier: { paddingBottom: 16 },
+            modifier: { paddingBottom: 12 },
             props: {
-              text: '¡Bienvenido a Compose Studio!',
-              fontSize: 22,
+              text: '¡Bienvenido a KotlinPress!',
+              fontSize: 20,
               fontWeight: 'Bold',
             },
+          },
+          {
+            id: 'row-radios',
+            type: 'Row',
+            name: 'Opciones de Categoría',
+            modifier: { paddingBottom: 16 },
+            props: {
+              horizontalArrangement: 'Center',
+              verticalAlignment: 'CenterVertically',
+            },
+            children: [
+              {
+                id: 'rb-cat-1',
+                type: 'RadioButton',
+                name: 'Radio General',
+                modifier: { paddingEnd: 12 },
+                props: {
+                  label: 'General',
+                  radioValue: 'General',
+                  selectedBinding: 'categoria',
+                },
+              },
+              {
+                id: 'rb-cat-2',
+                type: 'RadioButton',
+                name: 'Radio Pro',
+                modifier: {},
+                props: {
+                  label: 'Pro',
+                  radioValue: 'Pro',
+                  selectedBinding: 'categoria',
+                },
+              },
+            ],
           },
           {
             id: 'txt-count-label',
@@ -65,17 +110,17 @@ export const sampleAppAST: AppAST = {
             modifier: {},
             props: {
               text: 'Valor actual del contador:',
-              fontSize: 16,
+              fontSize: 14,
             },
           },
           {
             id: 'txt-count-val',
             type: 'Text',
             name: 'Valor Contador',
-            modifier: { paddingBottom: 24 },
+            modifier: { paddingBottom: 16 },
             props: {
               textBinding: 'contador',
-              fontSize: 36,
+              fontSize: 32,
               fontWeight: 'Bold',
             },
           },
@@ -83,7 +128,7 @@ export const sampleAppAST: AppAST = {
             id: 'row-buttons',
             type: 'Row',
             name: 'Fila de Botones',
-            modifier: { fillMaxWidth: true, paddingBottom: 24 },
+            modifier: { fillMaxWidth: true, paddingBottom: 16 },
             props: {
               horizontalArrangement: 'Center',
             },

@@ -8,6 +8,7 @@ import {
   StateVariable,
   ComponentType,
   AppThemeConfig,
+  isContainerComponent,
 } from '../../core/ast/schema.ts';
 import { sampleAppAST } from '../../core/ast/sampleApp.ts';
 import { THEME_PRESETS } from '../../core/ast/themePresets.ts';
@@ -27,9 +28,11 @@ interface EditorState {
   addComponent: (parentId: string, type: ComponentType) => void;
   deleteComponent: (componentId: string) => void;
   moveComponent: (componentId: string, direction: 'up' | 'down') => void;
+  reorderComponent: (sourceId: string, targetId: string, position: 'before' | 'after' | 'inside') => void;
   duplicateComponent: (componentId: string) => void;
 
   addStateVariable: (screenId: string, variable: StateVariable) => void;
+  updateStateVariable: (screenId: string, varId: string, variable: Partial<StateVariable>) => void;
   deleteStateVariable: (screenId: string, varId: string) => void;
 
   addScreen: (name: string, route: string) => void;
@@ -88,6 +91,26 @@ function findParentAndIndex(
     if (res) return res;
   }
   return null;
+}
+
+function findNodeInTree(root: UIComponentNode, targetId: string): UIComponentNode | null {
+  if (root.id === targetId) return root;
+  if (root.children) {
+    for (const child of root.children) {
+      const found = findNodeInTree(child, targetId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function isDescendantNode(ancestor: UIComponentNode, potentialChildId: string): boolean {
+  if (!ancestor.children) return false;
+  for (const child of ancestor.children) {
+    if (child.id === potentialChildId) return true;
+    if (isDescendantNode(child, potentialChildId)) return true;
+  }
+  return false;
 }
 
 function cloneNodeWithNewIds(node: UIComponentNode): UIComponentNode {
@@ -165,19 +188,99 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     } else if (type === 'OutlinedTextField') {
       newNode.props = { label: 'Campo de texto', valueBinding: '' };
       newNode.modifier = { fillMaxWidth: true, paddingBottom: 8 };
+    } else if (type === 'RadioButton') {
+      newNode.props = { label: 'Opción 1', radioValue: 'opcion_1', selectedBinding: '' };
+      newNode.modifier = { paddingVertical: 4 };
+    } else if (type === 'Image') {
+      newNode.props = { imageResource: 'sample_image', contentDescription: 'Imagen de ejemplo' };
+      newNode.modifier = { width: 120, height: 120, cornerRadius: 8 };
     } else if (type === 'Spacer') {
       newNode.props = { size: 16 };
+    } else if (type === 'Box') {
+      newNode.children = [];
+      newNode.props = { contentAlignment: 'Center' };
+      newNode.modifier = { paddingAll: 8 };
+    } else if (type === 'LazyColumn') {
+      newNode.children = [];
+      newNode.modifier = { fillMaxWidth: true, paddingAll: 4 };
     } else if (type === 'Column' || type === 'Row' || type === 'Card') {
       newNode.children = [];
       newNode.modifier = { paddingAll: 8 };
     }
 
-    findAndMutateNode(screen.rootComponent, parentId, parent => {
-      if (!parent.children) parent.children = [];
-      parent.children.push(newNode);
-    });
+    // Regla de Contención: NO permitir introducir hijos dentro de hojas (Text, Spacer, Button, etc.)
+    const targetId = parentId || screen.rootComponent.id;
+    const targetNode = findNodeInTree(screen.rootComponent, targetId);
+
+    if (targetNode && isContainerComponent(targetNode.type)) {
+      // El nodo seleccionado ES un contenedor: se inserta como hijo dentro de él
+      if (!targetNode.children) targetNode.children = [];
+      targetNode.children.push(newNode);
+    } else {
+      // El nodo seleccionado es una hoja (Text, Divider, Spacer, Button, etc.)
+      // Buscamos su padre contenedor para insertarlo como hermano inmediatamente después
+      const parentInfo = findParentAndIndex(screen.rootComponent, targetId);
+      if (parentInfo && parentInfo.parent.children) {
+        parentInfo.parent.children.splice(parentInfo.index + 1, 0, newNode);
+      } else {
+        // Si no se encuentra padre, fallback seguro a la raíz de la pantalla
+        if (!screen.rootComponent.children) screen.rootComponent.children = [];
+        screen.rootComponent.children.push(newNode);
+      }
+    }
 
     set({ ast: newAst, selectedComponentId: newId });
+  },
+
+  reorderComponent: (sourceId, targetId, position) => {
+    const { ast, selectedScreenId } = get();
+    if (sourceId === targetId) return;
+
+    const newAst = JSON.parse(JSON.stringify(ast)) as AppAST;
+    const screen = newAst.screens.find(s => s.id === selectedScreenId);
+    if (!screen || screen.rootComponent.id === sourceId) return; // No mover la raíz
+
+    const sourceNode = findNodeInTree(screen.rootComponent, sourceId);
+    if (!sourceNode) return;
+
+    // Prevenir ciclos: no mover un nodo dentro de sus propios descendientes
+    if (isDescendantNode(sourceNode, targetId)) return;
+
+    // 1. Extraer el nodo origen
+    removeNode(screen.rootComponent, sourceId);
+
+    // 2. Insertar en la nueva ubicación
+    if (position === 'inside') {
+      const targetNode = findNodeInTree(screen.rootComponent, targetId);
+      if (targetNode && isContainerComponent(targetNode.type)) {
+        if (!targetNode.children) targetNode.children = [];
+        targetNode.children.push(sourceNode);
+      } else {
+        // Si el objetivo no es contenedor, insertar como hermano siguiente
+        const parentInfo = findParentAndIndex(screen.rootComponent, targetId);
+        if (parentInfo && parentInfo.parent.children) {
+          parentInfo.parent.children.splice(parentInfo.index + 1, 0, sourceNode);
+        } else {
+          screen.rootComponent.children?.push(sourceNode);
+        }
+      }
+    } else if (position === 'before') {
+      const parentInfo = findParentAndIndex(screen.rootComponent, targetId);
+      if (parentInfo && parentInfo.parent.children) {
+        parentInfo.parent.children.splice(parentInfo.index, 0, sourceNode);
+      } else {
+        screen.rootComponent.children?.unshift(sourceNode);
+      }
+    } else if (position === 'after') {
+      const parentInfo = findParentAndIndex(screen.rootComponent, targetId);
+      if (parentInfo && parentInfo.parent.children) {
+        parentInfo.parent.children.splice(parentInfo.index + 1, 0, sourceNode);
+      } else {
+        screen.rootComponent.children?.push(sourceNode);
+      }
+    }
+
+    set({ ast: newAst, selectedComponentId: sourceId });
   },
 
   deleteComponent: (componentId) => {
@@ -242,6 +345,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     screen.stateVariables.push(variable);
     set({ ast: newAst });
+  },
+
+  updateStateVariable: (screenId, varId, variable) => {
+    const { ast } = get();
+    const newAst = JSON.parse(JSON.stringify(ast)) as AppAST;
+    const screen = newAst.screens.find(s => s.id === screenId);
+    if (!screen) return;
+
+    const idx = screen.stateVariables.findIndex(v => v.id === varId);
+    if (idx !== -1) {
+      screen.stateVariables[idx] = { ...screen.stateVariables[idx], ...variable };
+      set({ ast: newAst });
+    }
   },
 
   deleteStateVariable: (screenId, varId) => {

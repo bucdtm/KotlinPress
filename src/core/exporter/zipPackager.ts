@@ -9,6 +9,7 @@ import {
   generateLibsVersionsToml,
   generateAndroidManifest,
   generateStringsXml,
+  generateSampleImageDrawableXml,
   generateGradleWrapperProperties,
 } from './projectTemplate.ts';
 
@@ -43,10 +44,15 @@ export async function createAndroidProjectZip(ast: AppAST): Promise<Blob> {
     if (mainFolder) {
       mainFolder.file('AndroidManifest.xml', generateAndroidManifest(ast));
 
-      // Recursos
+      // Recursos Android (Strings y Drawables)
       const valuesFolder = mainFolder.folder('res/values');
       if (valuesFolder) {
-        valuesFolder.file('strings.xml', generateStringsXml(ast.appInfo.appName));
+        valuesFolder.file('strings.xml', generateStringsXml(ast));
+      }
+
+      const drawableFolder = mainFolder.folder('res/drawable');
+      if (drawableFolder) {
+        drawableFolder.file('sample_image.xml', generateSampleImageDrawableXml());
       }
 
       // Código fuente Kotlin

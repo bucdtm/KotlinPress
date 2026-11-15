@@ -1,4 +1,5 @@
 import React from 'react';
+import { ImageIcon } from 'lucide-react';
 import { UIComponentNode } from '../core/ast/schema.ts';
 import { useEditorStore } from '../editor/state/editorStore.ts';
 import { RuntimeState, executeActions } from './actionExecutor.ts';
@@ -110,6 +111,50 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
           {isSelected && (
             <span className="absolute -top-2.5 left-2 bg-[#7f52ff] text-[9px] font-mono font-medium text-white px-1.5 py-0.2 rounded z-10 shadow-sm">
               {node.name || node.type}
+            </span>
+          )}
+          {node.children?.map(child => (
+            <ComponentRenderer
+              key={child.id}
+              node={child}
+              runtimeState={runtimeState}
+              setRuntimeState={setRuntimeState}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    case 'Box': {
+      let alignClass = 'items-center justify-center';
+      if (node.props.contentAlignment === 'TopStart') alignClass = 'items-start justify-start';
+      else if (node.props.contentAlignment === 'TopCenter') alignClass = 'items-start justify-center';
+      else if (node.props.contentAlignment === 'BottomCenter') alignClass = 'items-end justify-center';
+      else if (node.props.contentAlignment === 'BottomEnd') alignClass = 'items-end justify-end';
+
+      const hasChildren = node.children && node.children.length > 0;
+      const emptyBoxHint = !hasChildren && !interactiveMode;
+
+      return (
+        <div
+          onClick={handleClick}
+          style={{
+            ...style,
+            width: node.modifier.width ? `${node.modifier.width}px` : undefined,
+            height: node.modifier.height ? `${node.modifier.height}px` : undefined,
+          }}
+          className={`relative flex ${alignClass} ${
+            emptyBoxHint ? 'min-h-[70px] min-w-[70px] border border-dashed border-zinc-700/70 rounded-lg p-2 bg-zinc-900/20' : ''
+          } ${layoutClasses} ${selectionOutline} transition-all`}
+        >
+          {isSelected && (
+            <span className="absolute -top-2.5 left-2 bg-[#7f52ff] text-[9px] font-mono font-medium text-white px-1.5 py-0.2 rounded z-10 shadow-sm">
+              {node.name || 'Box'}
+            </span>
+          )}
+          {emptyBoxHint && (
+            <span className="text-[10px] text-zinc-500 font-mono select-none">
+              (Box vacío)
             </span>
           )}
           {node.children?.map(child => (
@@ -288,50 +333,163 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       );
     }
 
+    case 'RadioButton': {
+      const binding = node.props.selectedBinding;
+      const radioVal = node.props.radioValue || 'Opción';
+      const isRadioSelected = Boolean(binding && runtimeState.values[binding] === radioVal);
+
+      const handleRadioClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (interactiveMode && binding) {
+          setRuntimeState(prev => ({
+            ...prev,
+            values: { ...prev.values, [binding]: radioVal },
+          }));
+        } else if (!interactiveMode) {
+          selectComponent(node.id);
+        }
+      };
+
+      return (
+        <div
+          onClick={handleRadioClick}
+          style={style}
+          className={`flex items-center gap-2.5 py-1 px-1 cursor-pointer select-none ${layoutClasses} ${selectionOutline}`}
+        >
+          <div
+            style={{
+              borderColor: isRadioSelected ? theme.primaryColor : '#71717a',
+            }}
+            className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors shrink-0"
+          >
+            {isRadioSelected && (
+              <div
+                style={{ backgroundColor: theme.primaryColor }}
+                className="w-2.5 h-2.5 rounded-full"
+              />
+            )}
+          </div>
+          {node.props.label && (
+            <span
+              style={{
+                color: theme.textColor || (theme.isDark ? '#E6E1E5' : '#1D1B20'),
+                fontSize: node.props.fontSize ? `${node.props.fontSize}px` : '13px',
+              }}
+              className="text-xs font-normal"
+            >
+              {node.props.label}
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    case 'Image': {
+      const resName = node.props.imageResource || 'sample_image';
+      const previewUrl = node.props.imageUrl;
+      const width = node.modifier.width ? `${node.modifier.width}px` : '110px';
+      const height = node.modifier.height ? `${node.modifier.height}px` : '110px';
+
+      return (
+        <div
+          onClick={handleClick}
+          style={{
+            ...style,
+            width,
+            height,
+          }}
+          className={`relative overflow-hidden flex flex-col items-center justify-center bg-zinc-900 border border-zinc-800 rounded-xl ${layoutClasses} ${selectionOutline}`}
+        >
+          {previewUrl ? (
+            <img
+              src={previewUrl}
+              alt={node.props.contentDescription || 'Imagen'}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center p-3 text-center">
+              <ImageIcon className="w-8 h-8 text-[#7f52ff]/80 mb-1.5" strokeWidth={1.5} />
+              <span className="text-[10px] font-mono font-medium text-zinc-300">
+                R.drawable.{resName}
+              </span>
+              <span className="text-[9px] text-zinc-500 mt-0.5 truncate max-w-[90px]">
+                {node.props.contentDescription || 'Imagen'}
+              </span>
+            </div>
+          )}
+          {isSelected && (
+            <span className="absolute -top-2.5 left-2 bg-[#7f52ff] text-[9px] font-mono font-medium text-white px-1.5 py-0.2 rounded z-10 shadow-sm">
+              Image
+            </span>
+          )}
+        </div>
+      );
+    }
+
     case 'LazyColumn': {
       const binding = node.props.itemsBinding;
-      const items: string[] = binding && Array.isArray(runtimeState.values[binding])
+      const boundItems: string[] = binding && Array.isArray(runtimeState.values[binding])
         ? runtimeState.values[binding]
         : [];
+      const hasChildren = node.children && node.children.length > 0;
+      const isEmpty = !hasChildren && (!binding || boundItems.length === 0);
 
       return (
         <div
           onClick={handleClick}
           style={style}
-          className={`flex flex-col gap-1.5 overflow-y-auto max-h-[340px] p-2 bg-[#0c0c0f] rounded-xl border border-zinc-800 ${layoutClasses} ${selectionOutline}`}
+          className={`flex flex-col gap-2 overflow-y-auto max-h-[360px] p-2 bg-[#0c0c0f]/80 rounded-xl border border-zinc-800/80 ${layoutClasses} ${selectionOutline}`}
         >
-          {items.length === 0 ? (
-            <div className="text-center text-xs text-zinc-600 py-6">
-              (Lista vacía)
-            </div>
-          ) : (
-            items.map((item, idx) => (
-              <div
-                key={idx}
-                className="bg-[#18181d] border border-zinc-800/80 px-3 py-2 rounded-lg flex items-center justify-between text-xs"
-              >
-                <span className="text-zinc-200">{item}</span>
-                {interactiveMode && binding && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRuntimeState(prev => {
-                        const nextList = [...items];
-                        nextList.splice(idx, 1);
-                        return {
-                          ...prev,
-                          values: { ...prev.values, [binding]: nextList },
-                        };
-                      });
-                    }}
-                    className="text-zinc-500 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded hover:bg-zinc-800"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))
+          {isSelected && (
+            <span className="absolute -top-2.5 left-2 bg-[#7f52ff] text-[9px] font-mono font-medium text-white px-1.5 py-0.2 rounded z-10 shadow-sm">
+              LazyColumn
+            </span>
           )}
+
+          {isEmpty && (
+            <div className="text-center text-xs text-zinc-500 py-6 font-mono">
+              (LazyColumn vacío - añade elementos o enlaza una variable)
+            </div>
+          )}
+
+          {/* Renderizar hijos estáticos (Text, Button, Card, etc.) */}
+          {node.children?.map(child => (
+            <div key={child.id} className="w-full">
+              <ComponentRenderer
+                node={child}
+                runtimeState={runtimeState}
+                setRuntimeState={setRuntimeState}
+              />
+            </div>
+          ))}
+
+          {/* Renderizar items dinámicos enlazados al UiState */}
+          {boundItems.map((item, idx) => (
+            <div
+              key={idx}
+              className="bg-[#18181d] border border-zinc-800/80 px-3 py-2 rounded-lg flex items-center justify-between text-xs"
+            >
+              <span className="text-zinc-200">{item}</span>
+              {interactiveMode && binding && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRuntimeState(prev => {
+                      const nextList = [...boundItems];
+                      nextList.splice(idx, 1);
+                      return {
+                        ...prev,
+                        values: { ...prev.values, [binding]: nextList },
+                      };
+                    });
+                  }}
+                  className="text-zinc-500 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded hover:bg-zinc-800"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       );
     }

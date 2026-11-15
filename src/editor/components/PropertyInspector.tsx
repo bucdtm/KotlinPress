@@ -452,6 +452,139 @@ export const PropertyInspector: React.FC = () => {
               </div>
             )}
 
+            {/* RADIO BUTTON */}
+            {selectedNode.type === 'RadioButton' && (
+              <>
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">Etiqueta del Radio</label>
+                  <input
+                    type="text"
+                    value={props.label || ''}
+                    placeholder="ej: Opción A, Masculino..."
+                    onChange={(e) => updateComponentProps(selectedNode.id, { label: e.target.value })}
+                    className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100 outline-none focus:border-[#7f52ff]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">Valor de la Opción (radioValue)</label>
+                  <input
+                    type="text"
+                    value={props.radioValue || ''}
+                    placeholder="ej: opcion_1, valor_a"
+                    onChange={(e) => updateComponentProps(selectedNode.id, { radioValue: e.target.value })}
+                    className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100 outline-none focus:border-[#7f52ff]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">Variable de Selección (selectedBinding)</label>
+                  <select
+                    value={props.selectedBinding || ''}
+                    onChange={(e) => updateComponentProps(selectedNode.id, { selectedBinding: e.target.value })}
+                    className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100 outline-none focus:border-[#7f52ff]"
+                  >
+                    <option value="">Seleccionar variable String...</option>
+                    {screen?.stateVariables.filter(v => v.type === 'String').map(v => (
+                      <option key={v.id} value={v.name}>{v.name} (String)</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* IMAGEN */}
+            {selectedNode.type === 'Image' && (
+              <>
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">Recurso Drawable Android</label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-mono text-zinc-500 bg-[#0f0f12] px-2 py-1.5 border border-zinc-800 rounded-l">
+                      R.drawable.
+                    </span>
+                    <input
+                      type="text"
+                      value={props.imageResource || 'sample_image'}
+                      onChange={(e) => updateComponentProps(selectedNode.id, { imageResource: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
+                      className="flex-1 bg-[#0f0f12] border border-zinc-800 rounded-r px-2 py-1.5 text-zinc-100 font-mono text-xs outline-none focus:border-[#7f52ff]"
+                    />
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Exportado en <code className="text-zinc-400">res/drawable/sample_image.xml</code>. Puedes sustituirlo por cualquier .png/.xml en tu proyecto.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">Descripción Accesible (contentDescription)</label>
+                  <input
+                    type="text"
+                    value={props.contentDescription || ''}
+                    placeholder="ej: Logotipo de la app"
+                    onChange={(e) => updateComponentProps(selectedNode.id, { contentDescription: e.target.value })}
+                    className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100 outline-none focus:border-[#7f52ff]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-zinc-400 mb-1">URL de Previsualización Web (Opcional)</label>
+                  <input
+                    type="url"
+                    value={props.imageUrl || ''}
+                    placeholder="https://images.unsplash.com/..."
+                    onChange={(e) => updateComponentProps(selectedNode.id, { imageUrl: e.target.value || undefined })}
+                    className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2.5 py-1.5 text-zinc-100 outline-none focus:border-[#7f52ff]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-0.5">Ancho (dp)</label>
+                    <input
+                      type="number"
+                      value={mod.width || 120}
+                      onChange={(e) => updateComponentModifier(selectedNode.id, { width: Number(e.target.value) || undefined })}
+                      className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-white outline-none focus:border-[#7f52ff]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-0.5">Alto (dp)</label>
+                    <input
+                      type="number"
+                      value={mod.height || 120}
+                      onChange={(e) => updateComponentModifier(selectedNode.id, { height: Number(e.target.value) || undefined })}
+                      className="w-full bg-[#0f0f12] border border-zinc-800 rounded px-2 py-1 text-xs text-white outline-none focus:border-[#7f52ff]"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* BOX LAYOUT */}
+            {selectedNode.type === 'Box' && (
+              <div>
+                <label className="block text-[11px] text-zinc-400 mb-1">Alineación del Contenido (contentAlignment)</label>
+                <div className="grid grid-cols-3 gap-1 bg-[#0f0f12] p-1 rounded-md border border-zinc-800 text-[10px]">
+                  {[
+                    { label: 'TopStart', val: 'TopStart' },
+                    { label: 'TopCenter', val: 'TopCenter' },
+                    { label: 'Center', val: 'Center' },
+                    { label: 'BottomCenter', val: 'BottomCenter' },
+                    { label: 'BottomEnd', val: 'BottomEnd' },
+                  ].map(opt => (
+                    <button
+                      key={opt.val}
+                      onClick={() => updateComponentProps(selectedNode.id, { contentAlignment: opt.val as any })}
+                      className={`py-1.5 rounded transition-colors ${
+                        (props.contentAlignment || 'Center') === opt.val
+                          ? 'bg-[#7f52ff] text-white font-medium'
+                          : 'text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* LAZY COLUMN */}
             {selectedNode.type === 'LazyColumn' && (
               <div>

@@ -4,6 +4,8 @@ import { generateUiStateKotlin } from './uiStateGenerator.ts';
 import { generateViewModelKotlin } from './viewModelGenerator.ts';
 import { generateNavHostKotlin } from './navHostGenerator.ts';
 import { generateColorKotlin, generateShapeKotlin, generateThemeKotlin, generateMainActivityKotlin } from './themeGenerator.ts';
+import { extractStringsFromAST } from './stringResourceManager.ts';
+import { generateSampleImageDrawableXml } from '../exporter/projectTemplate.ts';
 
 export interface GeneratedFile {
   path: string;       // Ruta relativa dentro del paquete (ej: "ui/screens/HomeScreen.kt")
@@ -29,11 +31,12 @@ export interface TranspilationResult {
 export function transpileAppToKotlin(ast: AppAST): TranspilationResult {
   const pkg = ast.appInfo.packageName;
   const appName = ast.appInfo.appName;
+  const stringManager = extractStringsFromAST(ast);
 
   const screenResults: ScreenGeneratedFiles[] = ast.screens.map(screen => {
     const uiStateCode = generateUiStateKotlin(screen, pkg);
     const viewModelCode = generateViewModelKotlin(screen, pkg);
-    const screenCode = generateScreenKotlin(screen, pkg);
+    const screenCode = generateScreenKotlin(screen, pkg, stringManager);
 
     return {
       screenId: screen.id,
@@ -56,6 +59,8 @@ export function transpileAppToKotlin(ast: AppAST): TranspilationResult {
     { path: 'ui/theme/Color.kt', content: colorCode },
     { path: 'ui/theme/Shape.kt', content: shapeCode },
     { path: 'ui/theme/Theme.kt', content: themeCode },
+    { path: 'res/values/strings.xml', content: stringManager.toXml() },
+    { path: 'res/drawable/sample_image.xml', content: generateSampleImageDrawableXml() },
   ];
 
   // Añadir los 3 archivos por cada pantalla (UiState, ViewModel, Screen)

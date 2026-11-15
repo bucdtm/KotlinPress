@@ -60,10 +60,16 @@ export type LeafComponentType =
   | 'OutlinedTextField'
   | 'Switch'
   | 'Checkbox'
+  | 'RadioButton'
+  | 'Image'
   | 'Spacer'
   | 'Divider';
 
 export type ComponentType = LayoutContainerType | LeafComponentType;
+
+export function isContainerComponent(type: ComponentType): boolean {
+  return ['Column', 'Row', 'Box', 'Card', 'LazyColumn'].includes(type);
+}
 
 export interface ComponentProps {
   // Textos y tipografía
@@ -84,8 +90,16 @@ export interface ComponentProps {
   placeholder?: string;
   valueBinding?: string;       // Variable enlazada para TextField
   checkedBinding?: string;     // Variable enlazada para Switch/Checkbox
-  
-  // Layout
+  radioValue?: string;         // Valor asignado al RadioButton
+  selectedBinding?: string;    // Variable de estado que contiene la opción activa
+
+  // Imágenes
+  imageResource?: string;      // Nombre del drawable (ej: sample_image)
+  contentDescription?: string; // Descripción accesible
+  imageUrl?: string;           // URL para previsualización web
+
+  // Layout & Box
+  contentAlignment?: 'TopStart' | 'TopCenter' | 'Center' | 'BottomCenter' | 'BottomEnd';
   verticalArrangement?: 'Top' | 'Center' | 'Bottom' | 'SpaceBetween' | 'SpaceAround' | 'SpaceEvenly';
   horizontalAlignment?: 'Start' | 'CenterHorizontally' | 'End';
   horizontalArrangement?: 'Start' | 'Center' | 'End' | 'SpaceBetween' | 'SpaceAround' | 'SpaceEvenly';

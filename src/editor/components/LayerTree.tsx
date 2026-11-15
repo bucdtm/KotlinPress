@@ -1,5 +1,5 @@
-import React from 'react';
-import { UIComponentNode } from '../../core/ast/schema.ts';
+import React, { useState } from 'react';
+import { UIComponentNode, isContainerComponent } from '../../core/ast/schema.ts';
 import { useEditorStore } from '../state/editorStore.ts';
 import {
   ChevronRight,
@@ -16,8 +16,11 @@ import {
   MousePointerClick,
   TextCursorInput,
   ToggleLeft,
+  CircleDot,
+  ImageIcon,
   BetweenVerticalEnd,
   Minus,
+  GripVertical,
 } from 'lucide-react';
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -31,6 +34,8 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   OutlinedButton: MousePointerClick,
   OutlinedTextField: TextCursorInput,
   Switch: ToggleLeft,
+  RadioButton: CircleDot,
+  Image: ImageIcon,
   Spacer: BetweenVerticalEnd,
   Divider: Minus,
 };
@@ -56,23 +61,94 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     deleteComponent,
     moveComponent,
     duplicateComponent,
+    reorderComponent,
   } = useEditorStore();
 
+  const [dropPos, setDropPos] = useState<'before' | 'after' | 'inside' | null>(null);
+
   const isSelected = selectedComponentId === node.id;
+  const isContainer = isContainerComponent(node.type);
   const Icon = TYPE_ICONS[node.type] || Square;
 
+  const handleDragStart = (e: React.DragEvent) => {
+    if (isRoot) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.setData('text/plain', node.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    const height = rect.height;
+
+    if (isRoot) {
+      setDropPos('inside');
+      return;
+    }
+
+    if (offsetY < height * 0.28) {
+      setDropPos('before');
+    } else if (offsetY > height * 0.72) {
+      setDropPos('after');
+    } else {
+      if (isContainer) {
+        setDropPos('inside');
+      } else {
+        setDropPos(offsetY < height * 0.5 ? 'before' : 'after');
+      }
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDropPos(null);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const sourceId = e.dataTransfer.getData('text/plain');
+    if (sourceId && sourceId !== node.id && dropPos) {
+      reorderComponent(sourceId, node.id, dropPos);
+    }
+    setDropPos(null);
+  };
+
+  let dropIndicatorClass = '';
+  if (dropPos === 'before') {
+    dropIndicatorClass = 'border-t-2 border-[#7f52ff] bg-[#7f52ff]/10';
+  } else if (dropPos === 'after') {
+    dropIndicatorClass = 'border-b-2 border-[#7f52ff] bg-[#7f52ff]/10';
+  } else if (dropPos === 'inside') {
+    dropIndicatorClass = 'bg-[#7f52ff]/20 ring-1 ring-[#7f52ff]/60 rounded';
+  }
+
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col select-none">
       <div
+        draggable={!isRoot}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         onClick={() => selectComponent(node.id)}
-        style={{ paddingLeft: `${level * 14 + 6}px` }}
-        className={`group flex items-center justify-between py-1.5 pr-1.5 rounded cursor-pointer text-xs transition-colors ${
+        style={{ paddingLeft: `${level * 14 + 4}px` }}
+        className={`group flex items-center justify-between py-1.5 pr-1.5 rounded cursor-pointer text-xs transition-colors relative ${dropIndicatorClass} ${
           isSelected
             ? 'bg-zinc-800 text-zinc-100 font-medium'
             : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
         }`}
       >
         <div className="flex items-center gap-1.5 truncate mr-1">
+          {!isRoot && (
+            <GripVertical className="w-3 h-3 text-zinc-600 group-hover:text-zinc-400 cursor-grab active:cursor-grabbing shrink-0" />
+          )}
           {node.children && node.children.length > 0 && (
             <ChevronRight className="w-3 h-3 text-zinc-600 shrink-0" />
           )}
@@ -176,9 +252,14 @@ export const LayerTree: React.FC = () => {
     <div className="flex flex-col gap-1.5 p-3 text-xs">
       {/* Barra de título con controles rápidos para el elemento seleccionado */}
       <div className="flex items-center justify-between px-1">
-        <span className="text-[11px] font-medium text-zinc-400">
-          Jerarquía de Capas
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-medium text-zinc-400">
+            Jerarquía de Capas
+          </span>
+          <span className="text-[10px] text-zinc-500 font-mono">
+            (Drag & Drop)
+          </span>
+        </div>
 
         {hasSelection && (
           <div className="flex items-center gap-1 bg-[#18181c] border border-zinc-800 rounded px-1.5 py-0.5">

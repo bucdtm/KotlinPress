@@ -1,6 +1,7 @@
 import { ScreenDefinition, UIComponentNode } from '../ast/schema.ts';
 import { buildModifierCode } from './modifierBuilder.ts';
 import { transpileActions } from './actionTranspiler.ts';
+import { StringResourceManager } from './stringResourceManager.ts';
 
 function capitalize(s: string): string {
   if (!s) return '';
@@ -9,14 +10,16 @@ function capitalize(s: string): string {
 
 export function generateScreenKotlin(
   screen: ScreenDefinition,
-  packageName: string
+  packageName: string,
+  stringManager?: StringResourceManager
 ): string {
-  const rootComponentCode = generateComponent(screen.rootComponent, 1);
+  const rootComponentCode = generateComponent(screen.rootComponent, 1, stringManager);
   const vmName = `${screen.name}ViewModel`;
   const stateName = `${screen.name}UiState`;
 
   return `package ${packageName}.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,6 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -40,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import ${packageName}.R
 
 /**
  * Pantalla contenedora de estado (Stateful Screen) que conecta el ViewModel y la Navegación.
@@ -74,7 +80,11 @@ ${rootComponentCode}
 `;
 }
 
-export function generateComponent(node: UIComponentNode, indentLevel: number): string {
+export function generateComponent(
+  node: UIComponentNode,
+  indentLevel: number,
+  stringManager?: StringResourceManager
+): string {
   const indent = '    '.repeat(indentLevel);
   const modCode = buildModifierCode(node.modifier, indentLevel + 1);
 
@@ -89,7 +99,7 @@ export function generateComponent(node: UIComponentNode, indentLevel: number): s
       }
 
       const childrenCode = (node.children || [])
-        .map(c => generateComponent(c, indentLevel + 1))
+        .map(c => generateComponent(c, indentLevel + 1, stringManager))
         .join('\n');
 
       return `${indent}Column(\n${args.map(a => `${indent}    ${a}`).join(',\n')}\n${indent}) {\n${childrenCode}\n${indent}}`;
@@ -105,32 +115,39 @@ export function generateComponent(node: UIComponentNode, indentLevel: number): s
       }
 
       const childrenCode = (node.children || [])
-        .map(c => generateComponent(c, indentLevel + 1))
+        .map(c => generateComponent(c, indentLevel + 1, stringManager))
         .join('\n');
 
       return `${indent}Row(\n${args.map(a => `${indent}    ${a}`).join(',\n')}\n${indent}) {\n${childrenCode}\n${indent}}`;
     }
 
     case 'Box': {
+      const align = node.props.contentAlignment || 'Center';
       const childrenCode = (node.children || [])
-        .map(c => generateComponent(c, indentLevel + 1))
+        .map(c => generateComponent(c, indentLevel + 1, stringManager))
         .join('\n');
 
-      return `${indent}Box(\n${indent}    modifier = ${modCode}\n${indent}) {\n${childrenCode}\n${indent}}`;
+      return `${indent}Box(\n${indent}    modifier = ${modCode},\n${indent}    contentAlignment = Alignment.${align}\n${indent}) {\n${childrenCode}\n${indent}}`;
     }
 
     case 'Card': {
       const childrenCode = (node.children || [])
-        .map(c => generateComponent(c, indentLevel + 1))
+        .map(c => generateComponent(c, indentLevel + 1, stringManager))
         .join('\n');
 
       return `${indent}Card(\n${indent}    modifier = ${modCode}\n${indent}) {\n${childrenCode}\n${indent}}`;
     }
 
     case 'Text': {
-      const textVal = node.props.textBinding
-        ? `uiState.${node.props.textBinding}.toString()`
-        : `"${node.props.text ?? ''}"`;
+      let textVal: string;
+      if (node.props.textBinding) {
+        textVal = `uiState.${node.props.textBinding}.toString()`;
+      } else if (stringManager) {
+        const key = stringManager.registerString('txt', node.props.text || 'Texto');
+        textVal = key ? `stringResource(R.string.${key})` : '""';
+      } else {
+        textVal = `"${node.props.text ?? ''}"`;
+      }
 
       const params = [`text = ${textVal}`];
       params.push(`modifier = ${modCode}`);
@@ -156,24 +173,45 @@ export function generateComponent(node: UIComponentNode, indentLevel: number): s
 
     case 'Button': {
       const actions = transpileActions(node.events?.onClick, indentLevel + 2);
-      const label = node.props.label || 'Botón';
+      const labelText = node.props.label || 'Botón';
+      const labelCode = stringManager
+        ? `stringResource(R.string.${stringManager.registerString('btn', labelText)})`
+        : `"${labelText}"`;
 
-      return `${indent}Button(\n${indent}    onClick = {\n${actions}\n${indent}    },\n${indent}    modifier = ${modCode}\n${indent}) {\n${indent}    Text("${label}")\n${indent}}`;
+      return `${indent}Button(\n${indent}    onClick = {\n${actions}\n${indent}    },\n${indent}    modifier = ${modCode}\n${indent}) {\n${indent}    Text(${labelCode})\n${indent}}`;
     }
 
     case 'OutlinedButton': {
       const actions = transpileActions(node.events?.onClick, indentLevel + 2);
-      const label = node.props.label || 'Botón';
+      const labelText = node.props.label || 'Botón';
+      const labelCode = stringManager
+        ? `stringResource(R.string.${stringManager.registerString('btn', labelText)})`
+        : `"${labelText}"`;
 
-      return `${indent}OutlinedButton(\n${indent}    onClick = {\n${actions}\n${indent}    },\n${indent}    modifier = ${modCode}\n${indent}) {\n${indent}    Text("${label}")\n${indent}}`;
+      return `${indent}OutlinedButton(\n${indent}    onClick = {\n${actions}\n${indent}    },\n${indent}    modifier = ${modCode}\n${indent}) {\n${indent}    Text(${labelCode})\n${indent}}`;
     }
 
     case 'OutlinedTextField': {
       const binding = node.props.valueBinding || 'tempText';
       const cap = capitalize(binding);
-      const label = node.props.label ? `label = { Text("${node.props.label}") },\n` : '';
+      
+      let labelParam = '';
+      if (node.props.label) {
+        const labelVal = stringManager
+          ? `stringResource(R.string.${stringManager.registerString('lbl', node.props.label)})`
+          : `"${node.props.label}"`;
+        labelParam = `label = { Text(${labelVal}) },\n`;
+      }
 
-      return `${indent}OutlinedTextField(\n${indent}    value = uiState.${binding},\n${indent}    onValueChange = { viewModel.update${cap}(it) },\n${label ? `${indent}    ${label}` : ''}${indent}    modifier = ${modCode}\n${indent})`;
+      let placeholderParam = '';
+      if (node.props.placeholder) {
+        const hintVal = stringManager
+          ? `stringResource(R.string.${stringManager.registerString('hint', node.props.placeholder)})`
+          : `"${node.props.placeholder}"`;
+        placeholderParam = `placeholder = { Text(${hintVal}) },\n`;
+      }
+
+      return `${indent}OutlinedTextField(\n${indent}    value = uiState.${binding},\n${indent}    onValueChange = { viewModel.update${cap}(it) },\n${labelParam ? `${indent}    ${labelParam}` : ''}${placeholderParam ? `${indent}    ${placeholderParam}` : ''}${indent}    modifier = ${modCode}\n${indent})`;
     }
 
     case 'Switch': {
@@ -190,12 +228,54 @@ export function generateComponent(node: UIComponentNode, indentLevel: number): s
       return `${indent}Checkbox(\n${indent}    checked = uiState.${binding},\n${indent}    onCheckedChange = { viewModel.set${cap}(it) },\n${indent}    modifier = ${modCode}\n${indent})`;
     }
 
-    case 'LazyColumn': {
-      const itemsBinding = node.props.itemsBinding
-        ? `uiState.${node.props.itemsBinding}`
-        : 'emptyList<String>()';
+    case 'RadioButton': {
+      const binding = node.props.selectedBinding || 'selectedOption';
+      const radioVal = node.props.radioValue || 'Opción';
+      const cap = capitalize(binding);
+      const label = node.props.label;
 
-      return `${indent}LazyColumn(\n${indent}    modifier = ${modCode}\n${indent}) {\n${indent}    items(${itemsBinding}) { item ->\n${indent}        Card(\n${indent}            modifier = Modifier\n${indent}                .fillMaxWidth()\n${indent}                .padding(vertical = 4.dp)\n${indent}        ) {\n${indent}            Text(\n${indent}                text = item,\n${indent}                modifier = Modifier.padding(16.dp),\n${indent}                fontSize = 16.sp\n${indent}            )\n${indent}        }\n${indent}    }\n${indent}}`;
+      if (label) {
+        const labelCode = stringManager
+          ? `stringResource(R.string.${stringManager.registerString('radio', label)})`
+          : `"${label}"`;
+
+        return `${indent}Row(\n${indent}    verticalAlignment = Alignment.CenterVertically,\n${indent}    modifier = ${modCode}.clickable { viewModel.update${cap}("${radioVal}") }\n${indent}) {\n${indent}    RadioButton(\n${indent}        selected = (uiState.${binding} == "${radioVal}"),\n${indent}        onClick = { viewModel.update${cap}("${radioVal}") }\n${indent}    )\n${indent}    Text(\n${indent}        text = ${labelCode},\n${indent}        modifier = Modifier.padding(start = 8.dp)\n${indent}    )\n${indent}}`;
+      } else {
+        return `${indent}RadioButton(\n${indent}    selected = (uiState.${binding} == "${radioVal}"),\n${indent}    onClick = { viewModel.update${cap}("${radioVal}") },\n${indent}    modifier = ${modCode}\n${indent})`;
+      }
+    }
+
+    case 'Image': {
+      const res = node.props.imageResource || 'sample_image';
+      const desc = node.props.contentDescription || 'Imagen';
+      const descCode = stringManager
+        ? `stringResource(R.string.${stringManager.registerString('desc', desc)})`
+        : `"${desc}"`;
+
+      return `${indent}// TIP: Coloca tu archivo en res/drawable/${res}.png o .xml para personalizar esta imagen\n${indent}Image(\n${indent}    painter = painterResource(id = R.drawable.${res}),\n${indent}    contentDescription = ${descCode},\n${indent}    modifier = ${modCode}\n${indent})`;
+    }
+
+    case 'LazyColumn': {
+      const itemsBinding = node.props.itemsBinding;
+      const children = node.children || [];
+
+      const parts: string[] = [];
+
+      if (children.length > 0) {
+        for (const child of children) {
+          parts.push(`${indent}    item {\n${generateComponent(child, indentLevel + 2, stringManager)}\n${indent}    }`);
+        }
+      }
+
+      if (itemsBinding) {
+        parts.push(`${indent}    items(uiState.${itemsBinding}) { item ->\n${indent}        Card(\n${indent}            modifier = Modifier\n${indent}                .fillMaxWidth()\n${indent}                .padding(vertical = 4.dp)\n${indent}        ) {\n${indent}            Text(\n${indent}                text = item,\n${indent}                modifier = Modifier.padding(16.dp),\n${indent}                fontSize = 16.sp\n${indent}            )\n${indent}        }\n${indent}    }`);
+      }
+
+      const body = parts.length > 0
+        ? parts.join('\n')
+        : `${indent}    // LazyColumn sin elementos definidos`;
+
+      return `${indent}LazyColumn(\n${indent}    modifier = ${modCode}\n${indent}) {\n${body}\n${indent}}`;
     }
 
     case 'Spacer': {

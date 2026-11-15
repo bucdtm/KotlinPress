@@ -9,6 +9,8 @@ import {
   MousePointerClick,
   TextCursorInput,
   ToggleLeft,
+  CircleDot,
+  ImageIcon,
   List,
   Layers,
   BetweenVerticalEnd,
@@ -19,7 +21,7 @@ interface ComponentItem {
   type: ComponentType;
   label: string;
   icon: React.ElementType;
-  category: 'Contenedores' | 'Tipografía' | 'Entradas e Interacción';
+  category: 'Contenedores' | 'Tipografía y Medios' | 'Entradas e Interacción';
 }
 
 const PALETTE_ITEMS: ComponentItem[] = [
@@ -29,13 +31,15 @@ const PALETTE_ITEMS: ComponentItem[] = [
   { type: 'Box', label: 'Box', icon: Square, category: 'Contenedores' },
   { type: 'LazyColumn', label: 'LazyColumn', icon: List, category: 'Contenedores' },
 
-  { type: 'Text', label: 'Text', icon: Type, category: 'Tipografía' },
-  { type: 'Spacer', label: 'Spacer', icon: BetweenVerticalEnd, category: 'Tipografía' },
-  { type: 'Divider', label: 'Divider', icon: Minus, category: 'Tipografía' },
+  { type: 'Text', label: 'Text', icon: Type, category: 'Tipografía y Medios' },
+  { type: 'Image', label: 'Image', icon: ImageIcon, category: 'Tipografía y Medios' },
+  { type: 'Spacer', label: 'Spacer', icon: BetweenVerticalEnd, category: 'Tipografía y Medios' },
+  { type: 'Divider', label: 'Divider', icon: Minus, category: 'Tipografía y Medios' },
 
   { type: 'Button', label: 'Button', icon: MousePointerClick, category: 'Entradas e Interacción' },
   { type: 'OutlinedButton', label: 'OutlinedButton', icon: MousePointerClick, category: 'Entradas e Interacción' },
   { type: 'OutlinedTextField', label: 'TextField', icon: TextCursorInput, category: 'Entradas e Interacción' },
+  { type: 'RadioButton', label: 'RadioButton', icon: CircleDot, category: 'Entradas e Interacción' },
   { type: 'Switch', label: 'Switch', icon: ToggleLeft, category: 'Entradas e Interacción' },
 ];
 
@@ -45,7 +49,7 @@ export const ComponentPalette: React.FC = () => {
   const currentScreen = ast.screens.find(s => s.id === selectedScreenId);
   const targetParentId = selectedComponentId || currentScreen?.rootComponent.id || '';
 
-  const categories = ['Contenedores', 'Tipografía', 'Entradas e Interacción'] as const;
+  const categories = ['Contenedores', 'Tipografía y Medios', 'Entradas e Interacción'] as const;
 
   return (
     <div className="flex flex-col gap-4 p-3 text-xs">
@@ -60,7 +64,7 @@ export const ComponentPalette: React.FC = () => {
                   key={item.type}
                   onClick={() => addComponent(targetParentId, item.type)}
                   className="flex items-center gap-2 p-2 rounded-md bg-[#18181c] hover:bg-[#222228] border border-zinc-800/80 hover:border-zinc-700 text-zinc-300 hover:text-white transition-colors text-left"
-                  title={`Insertar ${item.label} en el contenedor activo`}
+                  title={`Insertar ${item.label} en el diseño`}
                 >
                   <Icon className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={1.75} />
                   <span className="font-medium truncate">{item.label}</span>

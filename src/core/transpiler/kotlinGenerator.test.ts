@@ -9,10 +9,12 @@ describe('Modern Android Architecture Transpiler (UiState + ViewModel + UDF)', (
     const result = transpileAppToKotlin(sampleAppAST);
 
     expect(result.screens).toHaveLength(2);
-    // 5 base files (MainActivity, AppNavigation, Color, Shape, Theme) + 3 files per screen * 2 screens = 11 files
-    expect(result.allFiles.length).toBe(11);
+    // 7 base files (MainActivity, AppNavigation, Color, Shape, Theme, strings.xml, sample_image.xml) + 3 files per screen * 2 screens = 13 files
+    expect(result.allFiles.length).toBe(13);
 
     const filePaths = result.allFiles.map(f => f.path);
+    expect(filePaths).toContain('res/values/strings.xml');
+    expect(filePaths).toContain('res/drawable/sample_image.xml');
     expect(filePaths).toContain('ui/theme/Color.kt');
     expect(filePaths).toContain('ui/theme/Shape.kt');
     expect(filePaths).toContain('ui/theme/Theme.kt');
@@ -70,5 +72,17 @@ describe('Modern Android Architecture Transpiler (UiState + ViewModel + UDF)', (
     expect(vmCode).toContain('fun addTareasItem(item: String)');
     expect(screenCode).toContain('items(uiState.tareas) { item ->');
     expect(screenCode).toContain('viewModel.addTareasItem(uiState.nuevaTarea)');
+  });
+
+  it('genera recursos en strings.xml y usa stringResource en Jetpack Compose', () => {
+    const result = transpileAppToKotlin(sampleAppAST);
+    const stringsXml = result.allFiles.find(f => f.path === 'res/values/strings.xml');
+    expect(stringsXml).toBeDefined();
+    expect(stringsXml?.content).toContain('<resources>');
+    expect(stringsXml?.content).toContain('<string name=');
+
+    const homeScreenCode = result.screens.find(s => s.screenId === 'home')!.screenCode;
+    expect(homeScreenCode).toContain('import androidx.compose.ui.res.stringResource');
+    expect(homeScreenCode).toContain('stringResource(R.string.');
   });
 });

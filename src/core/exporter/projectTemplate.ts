@@ -1,4 +1,5 @@
 import { AppAST } from '../ast/schema.ts';
+import { extractStringsFromAST } from '../transpiler/stringResourceManager.ts';
 
 export function generateRootBuildGradle(): string {
   return `// Top-level build file where you can add configuration options common to all sub-projects/modules.
@@ -160,10 +161,43 @@ export function generateAndroidManifest(ast: AppAST): string {
 `;
 }
 
-export function generateStringsXml(appName: string): string {
-  return `<resources>
-    <string name="app_name">${appName}</string>
+export function generateStringsXml(astOrAppName: AppAST | string): string {
+  if (typeof astOrAppName === 'string') {
+    return `<resources>
+    <string name="app_name">${astOrAppName}</string>
 </resources>
+`;
+  }
+  const manager = extractStringsFromAST(astOrAppName);
+  return manager.toXml();
+}
+
+/**
+ * Genera un vector drawable estándar (sample_image.xml) para previsualizar imágenes
+ * en Android Studio sin causar errores de compilación por recursos faltantes.
+ */
+export function generateSampleImageDrawableXml(): string {
+  return `<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Fondo decorativo redondeado -->
+    <path
+        android:fillColor="#7F52FF"
+        android:pathData="M20,10 L100,10 A10,10 0 0,1 110,20 L110,100 A10,10 0 0,1 100,110 L20,110 A10,10 0 0,1 10,100 L10,20 A10,10 0 0,1 20,10 Z" />
+    <!-- Icono de imagen / montañas -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M35,75 L50,55 L65,75 Z" />
+    <path
+        android:fillColor="#E0D6FF"
+        android:pathData="M55,75 L70,45 L90,75 Z" />
+    <!-- Sol / Círculo -->
+    <path
+        android:fillColor="#FFD166"
+        android:pathData="M45,35 A8,8 0 1,1 45,34.9 Z" />
+</vector>
 `;
 }
 
