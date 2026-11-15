@@ -9,7 +9,6 @@ export const PhoneSimulator: React.FC = () => {
 
   const currentScreen = ast.screens.find(s => s.id === selectedScreenId) || ast.screens[0];
 
-  // Inicializar estado local del simulador con los valores iniciales de la pantalla
   const getInitialStateValues = () => {
     const values: Record<string, any> = {};
     if (currentScreen) {
@@ -26,7 +25,6 @@ export const PhoneSimulator: React.FC = () => {
     currentRoute: currentScreen?.route || 'home',
   });
 
-  // Si la pantalla seleccionada en el editor cambia o se navega en el simulador
   useEffect(() => {
     setRuntimeState(prev => ({
       ...prev,
@@ -35,7 +33,6 @@ export const PhoneSimulator: React.FC = () => {
     }));
   }, [selectedScreenId]);
 
-  // Si el simulador navega a otra ruta vía action
   useEffect(() => {
     if (runtimeState.currentRoute && currentScreen && runtimeState.currentRoute !== currentScreen.route) {
       const targetScreen = ast.screens.find(s => s.route === runtimeState.currentRoute);
@@ -56,61 +53,61 @@ export const PhoneSimulator: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center h-full p-4 select-none">
       {/* Barra superior de control del simulador */}
-      <div className="flex items-center gap-3 mb-4 bg-slate-800/90 border border-slate-700/80 rounded-full px-4 py-1.5 shadow-lg">
-        <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-full border border-slate-700">
+      <div className="flex items-center gap-3 mb-3 bg-[#121215] border border-zinc-800 rounded-md px-3 py-1 shadow-sm">
+        <div className="flex items-center gap-1 bg-[#18181c] p-0.5 rounded border border-zinc-800/80">
           <button
             onClick={() => setInteractiveMode(false)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
               !interactiveMode
-                ? 'bg-cyan-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-zinc-800 text-zinc-100 shadow-sm'
+                : 'text-zinc-400 hover:text-zinc-200'
             }`}
             title="Seleccionar y editar componentes"
           >
             <MousePointer className="w-3.5 h-3.5" />
-            Editar
+            <span>Editar</span>
           </button>
           <button
             onClick={() => setInteractiveMode(true)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
               interactiveMode
-                ? 'bg-emerald-600 text-white shadow animate-pulse'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#7f52ff] text-white shadow-sm'
+                : 'text-zinc-400 hover:text-zinc-200'
             }`}
             title="Probar botones y eventos en vivo"
           >
-            <Play className="w-3.5 h-3.5" />
-            Play
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>Play</span>
           </button>
         </div>
 
-        <div className="h-4 w-px bg-slate-700" />
+        <div className="h-3.5 w-px bg-zinc-800" />
 
         <button
           onClick={handleReset}
-          className="flex items-center gap-1 text-xs text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-700 transition"
+          className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded hover:bg-zinc-800/50 transition-colors"
           title="Reiniciar estado de la pantalla"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          Reiniciar
+          <span>Reiniciar</span>
         </button>
       </div>
 
-      {/* Chasis del Smartphone Android */}
-      <div className="relative w-[370px] h-[720px] bg-slate-950 rounded-[44px] p-3 shadow-2xl border-4 border-slate-800 ring-1 ring-slate-700 flex flex-col overflow-hidden">
+      {/* Chasis de Smartphone Android */}
+      <div className="relative w-[360px] h-[700px] bg-[#141417] rounded-[38px] p-2.5 border-2 border-zinc-700/60 shadow-2xl flex flex-col overflow-hidden">
         {/* Cámara frontal punch-hole */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-4 h-4 bg-black rounded-full z-30 border border-slate-800 flex items-center justify-center">
-          <div className="w-1.5 h-1.5 bg-slate-900 rounded-full" />
+        <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-black rounded-full z-30 border border-zinc-800 flex items-center justify-center">
+          <div className="w-1 h-1 bg-zinc-900 rounded-full" />
         </div>
 
         {/* Pantalla del dispositivo */}
-        <div className="relative flex-1 bg-slate-900 rounded-[34px] overflow-hidden flex flex-col">
+        <div className="relative flex-1 bg-[#101014] rounded-[28px] overflow-hidden flex flex-col border border-zinc-800/60">
           {/* Barra de Estado Android */}
-          <div className="h-8 flex items-center justify-between px-6 pt-1 text-[11px] font-medium text-slate-400 select-none z-20">
-            <span>12:30</span>
+          <div className="h-7 flex items-center justify-between px-5 pt-1 text-[11px] font-medium text-zinc-400 select-none z-20">
+            <span className="font-mono">12:30</span>
             <div className="flex items-center gap-1.5">
               <Wifi className="w-3 h-3" />
-              <span>5G</span>
+              <span className="text-[10px]">5G</span>
               <BatteryCharging className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -124,15 +121,15 @@ export const PhoneSimulator: React.FC = () => {
                 setRuntimeState={setRuntimeState}
               />
             ) : (
-              <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+              <div className="flex items-center justify-center h-full text-zinc-600 text-xs">
                 Sin pantalla activa
               </div>
             )}
           </div>
 
           {/* Barra de navegación gestual de Android */}
-          <div className="h-5 flex items-center justify-center pb-1">
-            <div className="w-28 h-1 bg-slate-600 rounded-full" />
+          <div className="h-4 flex items-center justify-center pb-0.5">
+            <div className="w-24 h-0.5 bg-zinc-600 rounded-full" />
           </div>
         </div>
       </div>

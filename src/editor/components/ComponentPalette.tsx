@@ -19,24 +19,24 @@ interface ComponentItem {
   type: ComponentType;
   label: string;
   icon: React.ElementType;
-  category: 'Layout' | 'Texto y Contenido' | 'Interacción y Formularios';
+  category: 'Contenedores' | 'Tipografía' | 'Entradas e Interacción';
 }
 
 const PALETTE_ITEMS: ComponentItem[] = [
-  { type: 'Column', label: 'Column', icon: Columns, category: 'Layout' },
-  { type: 'Row', label: 'Row', icon: Rows, category: 'Layout' },
-  { type: 'Card', label: 'Card', icon: Layers, category: 'Layout' },
-  { type: 'Box', label: 'Box', icon: Square, category: 'Layout' },
-  { type: 'LazyColumn', label: 'LazyColumn', icon: List, category: 'Layout' },
+  { type: 'Column', label: 'Column', icon: Columns, category: 'Contenedores' },
+  { type: 'Row', label: 'Row', icon: Rows, category: 'Contenedores' },
+  { type: 'Card', label: 'Card', icon: Layers, category: 'Contenedores' },
+  { type: 'Box', label: 'Box', icon: Square, category: 'Contenedores' },
+  { type: 'LazyColumn', label: 'LazyColumn', icon: List, category: 'Contenedores' },
 
-  { type: 'Text', label: 'Text', icon: Type, category: 'Texto y Contenido' },
-  { type: 'Spacer', label: 'Spacer', icon: BetweenVerticalEnd, category: 'Texto y Contenido' },
-  { type: 'Divider', label: 'Divider', icon: Minus, category: 'Texto y Contenido' },
+  { type: 'Text', label: 'Text', icon: Type, category: 'Tipografía' },
+  { type: 'Spacer', label: 'Spacer', icon: BetweenVerticalEnd, category: 'Tipografía' },
+  { type: 'Divider', label: 'Divider', icon: Minus, category: 'Tipografía' },
 
-  { type: 'Button', label: 'Button', icon: MousePointerClick, category: 'Interacción y Formularios' },
-  { type: 'OutlinedButton', label: 'OutlinedButton', icon: MousePointerClick, category: 'Interacción y Formularios' },
-  { type: 'OutlinedTextField', label: 'TextField', icon: TextCursorInput, category: 'Interacción y Formularios' },
-  { type: 'Switch', label: 'Switch', icon: ToggleLeft, category: 'Interacción y Formularios' },
+  { type: 'Button', label: 'Button', icon: MousePointerClick, category: 'Entradas e Interacción' },
+  { type: 'OutlinedButton', label: 'OutlinedButton', icon: MousePointerClick, category: 'Entradas e Interacción' },
+  { type: 'OutlinedTextField', label: 'TextField', icon: TextCursorInput, category: 'Entradas e Interacción' },
+  { type: 'Switch', label: 'Switch', icon: ToggleLeft, category: 'Entradas e Interacción' },
 ];
 
 export const ComponentPalette: React.FC = () => {
@@ -45,30 +45,24 @@ export const ComponentPalette: React.FC = () => {
   const currentScreen = ast.screens.find(s => s.id === selectedScreenId);
   const targetParentId = selectedComponentId || currentScreen?.rootComponent.id || '';
 
-  const categories = ['Layout', 'Texto y Contenido', 'Interacción y Formularios'] as const;
+  const categories = ['Contenedores', 'Tipografía', 'Entradas e Interacción'] as const;
 
   return (
-    <div className="flex flex-col gap-4 p-4 text-xs">
-      <div className="text-slate-400 font-semibold uppercase tracking-wider text-[11px] px-1">
-        Paleta de Componentes Compose
-      </div>
-
+    <div className="flex flex-col gap-4 p-3 text-xs">
       {categories.map(cat => (
-        <div key={cat} className="flex flex-col gap-2">
-          <span className="text-[11px] font-medium text-slate-400 px-1">{cat}</span>
-          <div className="grid grid-cols-2 gap-2">
+        <div key={cat} className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-medium text-zinc-400 px-1">{cat}</span>
+          <div className="grid grid-cols-2 gap-1.5">
             {PALETTE_ITEMS.filter(item => item.category === cat).map(item => {
               const Icon = item.icon;
               return (
                 <button
                   key={item.type}
                   onClick={() => addComponent(targetParentId, item.type)}
-                  className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 hover:border-cyan-500/50 text-slate-200 transition-all text-left shadow-sm hover:scale-[1.02] active:scale-95"
+                  className="flex items-center gap-2 p-2 rounded-md bg-[#18181c] hover:bg-[#222228] border border-zinc-800/80 hover:border-zinc-700 text-zinc-300 hover:text-white transition-colors text-left"
                   title={`Insertar ${item.label} en el contenedor activo`}
                 >
-                  <div className="p-1.5 rounded-lg bg-slate-900/80 text-cyan-400">
-                    <Icon className="w-4 h-4" />
-                  </div>
+                  <Icon className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={1.75} />
                   <span className="font-medium truncate">{item.label}</span>
                 </button>
               );

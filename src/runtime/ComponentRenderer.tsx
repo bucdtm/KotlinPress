@@ -28,7 +28,6 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     }
   };
 
-  // Convertir Modifiers a CSS inline
   const style: React.CSSProperties = {
     padding: node.modifier.paddingAll !== undefined ? `${node.modifier.paddingAll}px` : undefined,
     paddingTop: node.modifier.paddingTop !== undefined ? `${node.modifier.paddingTop}px` : undefined,
@@ -47,9 +46,9 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
   }
 
   const selectionOutline = isSelected
-    ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-900 relative'
+    ? 'ring-1 ring-[#7f52ff] ring-offset-1 ring-offset-[#101014] relative'
     : !interactiveMode
-    ? 'hover:ring-1 hover:ring-cyan-500/50'
+    ? 'hover:ring-1 hover:ring-zinc-600'
     : '';
 
   switch (node.type) {
@@ -70,7 +69,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
           className={`flex flex-col ${justify} ${align} ${layoutClasses} ${selectionOutline} transition-all`}
         >
           {isSelected && (
-            <span className="absolute -top-3 left-2 bg-cyan-600 text-[10px] font-bold text-white px-1.5 py-0.5 rounded shadow z-10">
+            <span className="absolute -top-2.5 left-2 bg-[#7f52ff] text-[9px] font-mono font-medium text-white px-1.5 py-0.2 rounded z-10 shadow-sm">
               {node.name || node.type}
             </span>
           )}
@@ -103,7 +102,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
           className={`flex flex-row ${justify} ${align} ${layoutClasses} ${selectionOutline} transition-all`}
         >
           {isSelected && (
-            <span className="absolute -top-3 left-2 bg-cyan-600 text-[10px] font-bold text-white px-1.5 py-0.5 rounded shadow z-10">
+            <span className="absolute -top-2.5 left-2 bg-[#7f52ff] text-[9px] font-mono font-medium text-white px-1.5 py-0.2 rounded z-10 shadow-sm">
               {node.name || node.type}
             </span>
           )}
@@ -124,10 +123,10 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         <div
           onClick={handleClick}
           style={style}
-          className={`bg-slate-800/90 border border-slate-700/80 rounded-2xl shadow-md p-4 ${layoutClasses} ${selectionOutline} transition-all`}
+          className={`bg-[#1c1c22] border border-zinc-700/60 rounded-2xl p-4 shadow-sm ${layoutClasses} ${selectionOutline}`}
         >
           {isSelected && (
-            <span className="absolute -top-3 left-2 bg-cyan-600 text-[10px] font-bold text-white px-1.5 py-0.5 rounded shadow z-10">
+            <span className="absolute -top-2.5 left-2 bg-[#7f52ff] text-[9px] font-mono font-medium text-white px-1.5 py-0.2 rounded z-10 shadow-sm">
               Card
             </span>
           )}
@@ -162,7 +161,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             ...style,
             fontSize: node.props.fontSize ? `${node.props.fontSize}px` : undefined,
           }}
-          className={`${fontWeight} text-slate-100 ${layoutClasses} ${selectionOutline} cursor-pointer select-none`}
+          className={`${fontWeight} text-zinc-100 ${layoutClasses} ${selectionOutline} cursor-pointer select-none leading-snug`}
         >
           {String(displayText)}
         </p>
@@ -174,7 +173,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         <button
           onClick={handleClick}
           style={style}
-          className={`bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-medium py-2.5 px-6 rounded-full shadow-lg transition-all ${layoutClasses} ${selectionOutline}`}
+          className={`bg-[#6750a4] hover:bg-[#7963b6] active:scale-[0.98] text-white font-medium py-2.5 px-6 rounded-full shadow-sm transition-all text-sm ${layoutClasses} ${selectionOutline}`}
         >
           {node.props.label || 'Botón'}
         </button>
@@ -186,7 +185,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         <button
           onClick={handleClick}
           style={style}
-          className={`border border-purple-400 text-purple-300 hover:bg-purple-950/40 active:scale-95 font-medium py-2.5 px-6 rounded-full transition-all ${layoutClasses} ${selectionOutline}`}
+          className={`border border-[#79747e] text-[#d0bcff] hover:bg-[#6750a4]/10 active:scale-[0.98] font-medium py-2 px-5 rounded-full transition-all text-sm ${layoutClasses} ${selectionOutline}`}
         >
           {node.props.label || 'Botón'}
         </button>
@@ -199,7 +198,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
       return (
         <div onClick={handleClick} className={`relative my-1 ${layoutClasses} ${selectionOutline}`}>
-          <label className="block text-xs font-medium text-purple-300 mb-1">
+          <label className="block text-[11px] font-medium text-zinc-400 mb-1">
             {node.props.label || 'Campo'}
           </label>
           <input
@@ -214,7 +213,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
               }
             }}
             placeholder={node.props.placeholder || ''}
-            className="w-full bg-slate-900 border border-slate-600 focus:border-purple-400 rounded-lg px-3.5 py-2 text-sm text-white outline-none transition-colors"
+            className="w-full bg-[#16161b] border border-zinc-700 focus:border-[#7f52ff] rounded-md px-3 py-1.5 text-xs text-white outline-none transition-colors"
           />
         </div>
       );
@@ -235,11 +234,11 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                 }));
               }
             }}
-            className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors ${
-              isChecked ? 'bg-purple-600 justify-end' : 'bg-slate-700 justify-start'
+            className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors ${
+              isChecked ? 'bg-[#6750a4] justify-end' : 'bg-zinc-700 justify-start'
             }`}
           >
-            <div className="bg-white w-4 h-4 rounded-full shadow-md" />
+            <div className="bg-white w-5 h-5 rounded-full shadow-sm" />
           </div>
         </div>
       );
@@ -255,19 +254,19 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         <div
           onClick={handleClick}
           style={style}
-          className={`flex flex-col gap-2 overflow-y-auto max-h-[360px] p-2 bg-slate-950/40 rounded-xl border border-slate-800 ${layoutClasses} ${selectionOutline}`}
+          className={`flex flex-col gap-1.5 overflow-y-auto max-h-[340px] p-2 bg-[#0c0c0f] rounded-xl border border-zinc-800 ${layoutClasses} ${selectionOutline}`}
         >
           {items.length === 0 ? (
-            <div className="text-center text-xs text-slate-500 py-6">
-              (Lista vacía en este momento)
+            <div className="text-center text-xs text-zinc-600 py-6">
+              (Lista vacía)
             </div>
           ) : (
             items.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-slate-800/90 border border-slate-700/60 p-3 rounded-xl flex items-center justify-between text-sm shadow-sm"
+                className="bg-[#18181d] border border-zinc-800/80 px-3 py-2 rounded-lg flex items-center justify-between text-xs"
               >
-                <span>{item}</span>
+                <span className="text-zinc-200">{item}</span>
                 {interactiveMode && binding && (
                   <button
                     onClick={(e) => {
@@ -281,7 +280,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                         };
                       });
                     }}
-                    className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded hover:bg-red-950/40"
+                    className="text-zinc-500 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded hover:bg-zinc-800"
                   >
                     ✕
                   </button>
@@ -299,7 +298,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     }
 
     case 'Divider': {
-      return <hr onClick={handleClick} className={`border-slate-700 my-2 ${selectionOutline}`} />;
+      return <hr onClick={handleClick} className={`border-zinc-800 my-2 ${selectionOutline}`} />;
     }
 
     default:

@@ -47,18 +47,18 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, isRoot }) => {
     <div className="flex flex-col">
       <div
         onClick={() => selectComponent(node.id)}
-        style={{ paddingLeft: `${level * 16 + 8}px` }}
-        className={`flex items-center justify-between py-1.5 pr-2 rounded-lg cursor-pointer text-xs transition-colors ${
+        style={{ paddingLeft: `${level * 14 + 6}px` }}
+        className={`flex items-center justify-between py-1.5 pr-2 rounded cursor-pointer text-xs transition-colors ${
           isSelected
-            ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-semibold'
-            : 'text-slate-300 hover:bg-slate-800/80'
+            ? 'bg-zinc-800 text-zinc-100 font-medium'
+            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
         }`}
       >
         <div className="flex items-center gap-1.5 truncate">
           {node.children && node.children.length > 0 && (
-            <ChevronRight className="w-3 h-3 text-slate-500 shrink-0" />
+            <ChevronRight className="w-3 h-3 text-zinc-600 shrink-0" />
           )}
-          <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <Icon className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={1.75} />
           <span className="truncate">{node.name || node.type}</span>
         </div>
 
@@ -68,7 +68,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, level, isRoot }) => {
               e.stopPropagation();
               deleteComponent(node.id);
             }}
-            className="p-1 text-slate-500 hover:text-red-400 hover:bg-red-950/30 rounded transition"
+            className="p-1 text-zinc-500 hover:text-rose-400 rounded transition"
             title="Eliminar componente"
           >
             <Trash2 className="w-3 h-3" />
@@ -88,15 +88,15 @@ export const LayerTree: React.FC = () => {
   const screen = ast.screens.find(s => s.id === selectedScreenId);
 
   if (!screen) {
-    return <div className="p-4 text-xs text-slate-500">Sin pantalla seleccionada</div>;
+    return <div className="p-3 text-xs text-zinc-500">Sin pantalla seleccionada</div>;
   }
 
   return (
-    <div className="flex flex-col gap-2 p-3 text-xs">
-      <div className="text-slate-400 font-semibold uppercase tracking-wider text-[11px] px-1">
-        Árbol de Componentes (Capas)
-      </div>
-      <div className="flex flex-col bg-slate-900/60 border border-slate-800 rounded-xl p-2 max-h-[380px] overflow-y-auto">
+    <div className="flex flex-col gap-1.5 p-3 text-xs">
+      <span className="text-[11px] font-medium text-zinc-400 px-1">
+        Jerarquía de Capas
+      </span>
+      <div className="flex flex-col bg-[#0f0f12] border border-zinc-800/80 rounded-md p-1.5 max-h-[360px] overflow-y-auto">
         <TreeNode node={screen.rootComponent} level={0} isRoot />
       </div>
     </div>

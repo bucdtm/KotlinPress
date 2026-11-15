@@ -37,18 +37,18 @@ export const KotlinViewer: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 border-l border-slate-800 text-xs">
+    <div className="flex flex-col h-full bg-[#0d0d10] border-l border-zinc-800 text-xs">
       {/* Barra superior de acciones */}
-      <div className="flex items-center justify-between p-3 border-b border-slate-800 bg-slate-900/70">
+      <div className="flex items-center justify-between p-2.5 border-b border-zinc-800 bg-[#121215]">
         <div className="flex items-center gap-2">
-          <FileCode className="w-4 h-4 text-purple-400" />
-          <span className="font-semibold text-slate-200">Código Kotlin (Jetpack Compose)</span>
+          <FileCode className="w-4 h-4 text-zinc-400" />
+          <span className="font-medium text-zinc-200">Jetpack Compose</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+            className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#18181c] hover:bg-[#222228] border border-zinc-800 text-zinc-300 transition-colors"
             title="Copiar código al portapapeles"
           >
             {copied ? (
@@ -67,42 +67,42 @@ export const KotlinViewer: React.FC = () => {
           <button
             onClick={handleDownloadZip}
             disabled={isExporting}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium shadow-md transition disabled:opacity-50"
-            title="Descargar proyecto completo de Android Studio en formato ZIP"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#7f52ff] hover:bg-[#9068ff] text-white font-medium transition disabled:opacity-50"
+            title="Descargar ZIP"
           >
             <FolderArchive className="w-3.5 h-3.5" />
-            <span>{isExporting ? 'Empaquetando...' : 'Descargar .ZIP'}</span>
+            <span>{isExporting ? 'Empaquetando...' : 'Descargar ZIP'}</span>
           </button>
         </div>
       </div>
 
-      {/* Selector de archivos generados con badges de arquitectura */}
-      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-slate-800 bg-slate-900/40 overflow-x-auto text-[11px]">
+      {/* Selector de archivos generados con badges sobrios */}
+      <div className="flex items-center gap-1 px-2.5 py-1.5 border-b border-zinc-800 bg-[#0f0f12] overflow-x-auto text-[11px]">
         {transpiled.allFiles.map((file, idx) => {
           const isSelected = idx === selectedFileIndex;
           const fileName = file.path.split('/').pop() || '';
 
           let badgeText = 'Core';
-          let badgeColor = 'bg-slate-800 text-slate-300';
+          let badgeColor = 'bg-zinc-800/80 text-zinc-400';
           if (fileName.includes('UiState')) {
-            badgeText = 'UiState';
-            badgeColor = 'bg-emerald-950 text-emerald-300 border border-emerald-800';
+            badgeText = 'State';
+            badgeColor = 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40';
           } else if (fileName.includes('ViewModel')) {
             badgeText = 'VM';
-            badgeColor = 'bg-indigo-950 text-indigo-300 border border-indigo-800';
+            badgeColor = 'bg-[#7f52ff]/20 text-[#b299ff] border border-[#7f52ff]/40';
           } else if (fileName.includes('Screen')) {
-            badgeText = 'Screen';
-            badgeColor = 'bg-cyan-950 text-cyan-300 border border-cyan-800';
+            badgeText = 'UI';
+            badgeColor = 'bg-zinc-800 text-zinc-300';
           }
 
           return (
             <button
               key={file.path}
               onClick={() => setSelectedFileIndex(idx)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all whitespace-nowrap ${
+              className={`flex items-center gap-1.5 px-2 py-1 rounded transition-colors whitespace-nowrap ${
                 isSelected
-                  ? 'bg-purple-900/60 text-purple-200 font-semibold border border-purple-700/60 shadow-sm'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                  ? 'bg-zinc-800 text-zinc-100 font-medium'
+                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
               }`}
             >
               <span className={`text-[9px] px-1 py-0.2 rounded font-mono ${badgeColor}`}>
@@ -114,8 +114,8 @@ export const KotlinViewer: React.FC = () => {
         })}
       </div>
 
-      {/* Visor de código con numeración de líneas */}
-      <div className="flex-1 overflow-auto p-4 font-mono text-[12px] leading-relaxed bg-[#0d1117] text-slate-200 select-text">
+      {/* Visor de código técnico */}
+      <div className="flex-1 overflow-auto p-4 font-mono text-[12px] leading-relaxed bg-[#0a0a0d] text-zinc-300 select-text">
         <pre className="whitespace-pre">
           <code>{currentFile?.content || '// Sin contenido'}</code>
         </pre>

@@ -9,22 +9,22 @@ import { KotlinViewer } from './editor/codeview/KotlinViewer.tsx';
 import { PhoneSimulator } from './runtime/PhoneSimulator.tsx';
 import { downloadAndroidProjectZip } from './core/exporter/zipPackager.ts';
 import {
-  Code,
-  Sliders,
+  Code2,
+  SlidersHorizontal,
   Layers,
   FileJson,
-  FolderArchive,
+  DownloadCloud,
   RotateCcw,
   Upload,
   Download,
   Smartphone,
-  Sparkles,
 } from 'lucide-react';
 
 export default function App() {
   const { ast, loadAST, resetToSample } = useEditorStore();
   const [leftTab, setLeftTab] = useState<'palette' | 'layers' | 'screens'>('palette');
   const [rightTab, setRightTab] = useState<'inspector' | 'code' | 'json'>('inspector');
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleExportJSON = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(ast, null, 2));
@@ -46,7 +46,7 @@ export default function App() {
           if (parsed.screens && parsed.appInfo) {
             loadAST(parsed);
           } else {
-            alert('El archivo no parece ser un AST válido de Compose Studio.');
+            alert('El archivo no parece ser un AST válido de KotlinPress.');
           }
         } catch {
           alert('Error al leer el archivo JSON.');
@@ -55,107 +55,121 @@ export default function App() {
     }
   };
 
+  const handleDownloadZip = async () => {
+    try {
+      setIsExporting(true);
+      await downloadAndroidProjectZip(ast);
+    } catch (err) {
+      console.error(err);
+      alert('Error al generar el ZIP de Android Studio.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#0b0f19] text-slate-100 overflow-hidden select-none">
-      {/* Navbar Superior */}
-      <header className="h-14 border-b border-slate-800 bg-slate-900/90 px-4 flex items-center justify-between shrink-0 z-30">
-        {/* Logo & Marca */}
+    <div className="flex flex-col h-screen w-screen bg-[#09090b] text-zinc-100 overflow-hidden select-none">
+      {/* Barra superior de herramientas - Estilo IDE Profesional */}
+      <header className="h-12 border-b border-zinc-800/80 bg-[#121215] px-4 flex items-center justify-between shrink-0 z-30">
+        {/* Identidad de la herramienta */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-500 shadow-lg shadow-purple-900/30">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm tracking-wide bg-gradient-to-r from-purple-300 via-indigo-200 to-cyan-300 bg-clip-text text-transparent">
-                Compose Studio
-              </span>
-              <span className="text-[10px] px-1.5 py-0.2 bg-purple-950 text-purple-300 border border-purple-800 rounded font-mono">
-                Jetpack Compose
-              </span>
-              <span className="text-[10px] px-1.5 py-0.2 bg-emerald-950 text-emerald-300 border border-emerald-800 rounded">
-                100% Offline
-              </span>
+          <div className="flex items-center gap-2">
+            {/* Logo geométrico discreto de KotlinPress */}
+            <div className="w-5 h-5 rounded bg-[#7f52ff] flex items-center justify-center text-white text-[10px] font-black tracking-tight">
+              K
             </div>
-            <span className="text-[11px] text-slate-400 font-mono">
-              {ast.appInfo.appName} · {ast.appInfo.packageName}
+            <h1 className="text-xs font-semibold text-zinc-100 tracking-tight">
+              KotlinPress
+            </h1>
+          </div>
+
+          <div className="h-3.5 w-px bg-zinc-800" />
+
+          {/* Información del proyecto activo */}
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-medium text-zinc-300">{ast.appInfo.appName}</span>
+            <span className="text-[11px] text-zinc-500 font-mono">({ast.appInfo.packageName})</span>
+            <span className="text-[10px] text-zinc-500 bg-zinc-800/60 px-1.5 py-0.5 rounded font-mono">
+              Offline
             </span>
           </div>
         </div>
 
-        {/* Acciones Centrales de Proyecto */}
+        {/* Acciones de proyecto */}
         <div className="flex items-center gap-2">
           <button
             onClick={resetToSample}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
-            title="Cargar demo completa"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 rounded transition"
+            title="Restablecer proyecto a la plantilla demo"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reiniciar Demo</span>
+            <span>Restablecer</span>
           </button>
 
-          <label className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg cursor-pointer transition border border-slate-700">
-            <Upload className="w-3.5 h-3.5 text-cyan-400" />
+          <label className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/60 rounded cursor-pointer transition">
+            <Upload className="w-3.5 h-3.5 text-zinc-400" />
             <span>Importar JSON</span>
             <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
           </label>
 
           <button
             onClick={handleExportJSON}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg transition border border-slate-700"
-            title="Exportar esquema AST en formato JSON"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/60 rounded transition"
+            title="Exportar AST JSON"
           >
-            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            <Download className="w-3.5 h-3.5 text-zinc-400" />
             <span>Exportar JSON</span>
           </button>
-        </div>
 
-        {/* Botón de Descarga Android Studio ZIP */}
-        <div className="flex items-center gap-3">
+          <div className="h-3.5 w-px bg-zinc-800 mx-1" />
+
+          {/* Acción principal: Descargar Android Studio ZIP */}
           <button
-            onClick={() => downloadAndroidProjectZip(ast)}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white text-xs font-semibold shadow-lg shadow-purple-900/40 hover:scale-[1.02] active:scale-95 transition-all"
-            title="Descargar proyecto completo listo para abrir en Android Studio"
+            onClick={handleDownloadZip}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#7f52ff] hover:bg-[#9068ff] active:bg-[#6f42ef] text-white text-xs font-medium transition disabled:opacity-50"
+            title="Descargar proyecto completo compilable en Android Studio"
           >
-            <FolderArchive className="w-4 h-4" />
-            <span>Descargar Proyecto Android (.ZIP)</span>
+            <DownloadCloud className="w-4 h-4" />
+            <span>{isExporting ? 'Empaquetando...' : 'Exportar Proyecto Android (.zip)'}</span>
           </button>
         </div>
       </header>
 
-      {/* Contenedor Principal (3 Columnas) */}
+      {/* Workspace de 3 paneles */}
       <div className="flex-1 flex overflow-hidden">
-        {/* 1. Panel Izquierdo: Paleta, Capas y Pantallas */}
-        <aside className="w-80 border-r border-slate-800 bg-slate-900/50 flex flex-col shrink-0">
-          {/* Tabs del panel izquierdo */}
-          <div className="flex border-b border-slate-800 bg-slate-900 text-xs font-medium">
+        {/* Panel Izquierdo: Estructura, Paleta y Pantallas */}
+        <aside className="w-72 border-r border-zinc-800/80 bg-[#121215] flex flex-col shrink-0">
+          {/* Segmented Control de pestañas izquierdas */}
+          <div className="flex border-b border-zinc-800 text-xs font-medium bg-[#0f0f12]">
             <button
               onClick={() => setLeftTab('palette')}
-              className={`flex-1 py-2.5 text-center flex items-center justify-center gap-1.5 transition ${
+              className={`flex-1 py-2 text-center flex items-center justify-center gap-1.5 transition ${
                 leftTab === 'palette'
-                  ? 'text-cyan-400 border-b-2 border-cyan-400 font-semibold bg-slate-800/40'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Paleta</span>
+              <span>Componentes</span>
             </button>
             <button
               onClick={() => setLeftTab('layers')}
-              className={`flex-1 py-2.5 text-center flex items-center justify-center gap-1.5 transition ${
+              className={`flex-1 py-2 text-center flex items-center justify-center gap-1.5 transition ${
                 leftTab === 'layers'
-                  ? 'text-cyan-400 border-b-2 border-cyan-400 font-semibold bg-slate-800/40'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Capas</span>
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Árbol</span>
             </button>
             <button
               onClick={() => setLeftTab('screens')}
-              className={`flex-1 py-2.5 text-center flex items-center justify-center gap-1.5 transition ${
+              className={`flex-1 py-2 text-center flex items-center justify-center gap-1.5 transition ${
                 leftTab === 'screens'
-                  ? 'text-cyan-400 border-b-2 border-cyan-400 font-semibold bg-slate-800/40'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               <Smartphone className="w-3.5 h-3.5" />
@@ -163,12 +177,12 @@ export default function App() {
             </button>
           </div>
 
-          {/* Contenido según tab izquierdo */}
+          {/* Contenido pestaña izquierda */}
           <div className="flex-1 overflow-y-auto">
             {leftTab === 'palette' && (
               <>
                 <ComponentPalette />
-                <div className="border-t border-slate-800">
+                <div className="border-t border-zinc-800">
                   <LayerTree />
                 </div>
               </>
@@ -183,51 +197,43 @@ export default function App() {
           </div>
         </aside>
 
-        {/* 2. Panel Central: Simulador Móvil Interactivo */}
-        <main className="flex-1 flex flex-col items-center justify-center bg-[#070a13] relative overflow-hidden">
-          {/* Fondo cuadriculado suave */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-[0.03]"
-            style={{
-              backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
-              backgroundSize: '24px 24px',
-            }}
-          />
+        {/* Panel Central: Lienzo y Simulador Móvil */}
+        <main className="flex-1 flex flex-col items-center justify-center bg-[#09090b] relative overflow-hidden">
           <PhoneSimulator />
         </main>
 
-        {/* 3. Panel Derecho: Inspector de Propiedades o Visor Kotlin */}
-        <aside className="w-[450px] border-l border-slate-800 bg-slate-900/50 flex flex-col shrink-0">
-          {/* Tabs del panel derecho */}
-          <div className="flex border-b border-slate-800 bg-slate-900 text-xs font-medium">
+        {/* Panel Derecho: Inspector de Propiedades, Código Kotlin o AST */}
+        <aside className="w-96 border-l border-zinc-800/80 bg-[#121215] flex flex-col shrink-0">
+          {/* Segmented Control de pestañas derechas */}
+          <div className="flex border-b border-zinc-800 text-xs font-medium bg-[#0f0f12]">
             <button
               onClick={() => setRightTab('inspector')}
-              className={`flex-1 py-2.5 text-center flex items-center justify-center gap-1.5 transition ${
+              className={`flex-1 py-2 text-center flex items-center justify-center gap-1.5 transition ${
                 rightTab === 'inspector'
-                  ? 'text-cyan-400 border-b-2 border-cyan-400 font-semibold bg-slate-800/40'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Inspector</span>
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Propiedades</span>
             </button>
             <button
               onClick={() => setRightTab('code')}
-              className={`flex-1 py-2.5 text-center flex items-center justify-center gap-1.5 transition ${
+              className={`flex-1 py-2 text-center flex items-center justify-center gap-1.5 transition ${
                 rightTab === 'code'
-                  ? 'text-purple-400 border-b-2 border-purple-400 font-semibold bg-slate-800/40'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Code className="w-3.5 h-3.5" />
-              <span>Kotlin Compose</span>
+              <Code2 className="w-3.5 h-3.5" />
+              <span>Código Kotlin</span>
             </button>
             <button
               onClick={() => setRightTab('json')}
-              className={`flex-1 py-2.5 text-center flex items-center justify-center gap-1.5 transition ${
+              className={`flex-1 py-2 text-center flex items-center justify-center gap-1.5 transition ${
                 rightTab === 'json'
-                  ? 'text-emerald-400 border-b-2 border-emerald-400 font-semibold bg-slate-800/40'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'text-zinc-100 border-b-2 border-[#7f52ff] font-semibold bg-[#15151a]'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               <FileJson className="w-3.5 h-3.5" />
@@ -235,12 +241,12 @@ export default function App() {
             </button>
           </div>
 
-          {/* Contenido según tab derecho */}
+          {/* Contenido pestaña derecha */}
           <div className="flex-1 overflow-hidden flex flex-col">
             {rightTab === 'inspector' && <PropertyInspector />}
             {rightTab === 'code' && <KotlinViewer />}
             {rightTab === 'json' && (
-              <div className="flex-1 overflow-auto p-4 font-mono text-[11px] leading-relaxed bg-[#0d1117] text-emerald-400/90 select-text">
+              <div className="flex-1 overflow-auto p-4 font-mono text-[11px] leading-relaxed bg-[#0d0d10] text-zinc-300 select-text">
                 <pre>{JSON.stringify(ast, null, 2)}</pre>
               </div>
             )}
