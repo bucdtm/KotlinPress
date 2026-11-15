@@ -26,6 +26,8 @@ interface EditorState {
   updateComponentModifier: (componentId: string, modifier: Partial<ModifierConfig>) => void;
   addComponent: (parentId: string, type: ComponentType) => void;
   deleteComponent: (componentId: string) => void;
+  moveComponent: (componentId: string, direction: 'up' | 'down') => void;
+  duplicateComponent: (componentId: string) => void;
 
   addStateVariable: (screenId: string, variable: StateVariable) => void;
   deleteStateVariable: (screenId: string, varId: string) => void;
@@ -70,6 +72,35 @@ function removeNode(root: UIComponentNode, targetId: string): boolean {
     if (removeNode(child, targetId)) return true;
   }
   return false;
+}
+
+function findParentAndIndex(
+  root: UIComponentNode,
+  targetId: string
+): { parent: UIComponentNode; index: number } | null {
+  if (!root.children) return null;
+  const idx = root.children.findIndex(c => c.id === targetId);
+  if (idx !== -1) {
+    return { parent: root, index: idx };
+  }
+  for (const child of root.children) {
+    const res = findParentAndIndex(child, targetId);
+    if (res) return res;
+  }
+  return null;
+}
+
+function cloneNodeWithNewIds(node: UIComponentNode): UIComponentNode {
+  const newId = `node-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+  return {
+    ...node,
+    id: newId,
+    name: node.name ? `${node.name} (Copia)` : undefined,
+    modifier: { ...node.modifier },
+    props: { ...node.props },
+    events: node.events ? JSON.parse(JSON.stringify(node.events)) : undefined,
+    children: node.children ? node.children.map(cloneNodeWithNewIds) : undefined,
+  };
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -157,6 +188,50 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     removeNode(screen.rootComponent, componentId);
     set({ ast: newAst, selectedComponentId: null });
+  },
+
+  moveComponent: (componentId, direction) => {
+    const { ast, selectedScreenId } = get();
+    const newAst = JSON.parse(JSON.stringify(ast)) as AppAST;
+    const screen = newAst.screens.find(s => s.id === selectedScreenId);
+    if (!screen) return;
+
+    const res = findParentAndIndex(screen.rootComponent, componentId);
+    if (!res || !res.parent.children) return;
+
+    const { parent, index } = res;
+    const children = parent.children;
+    if (!children) return;
+
+    if (direction === 'up' && index > 0) {
+      const temp = children[index];
+      children[index] = children[index - 1];
+      children[index - 1] = temp;
+      set({ ast: newAst });
+    } else if (direction === 'down' && index < children.length - 1) {
+      const temp = children[index];
+      children[index] = children[index + 1];
+      children[index + 1] = temp;
+      set({ ast: newAst });
+    }
+  },
+
+  duplicateComponent: (componentId) => {
+    const { ast, selectedScreenId } = get();
+    const newAst = JSON.parse(JSON.stringify(ast)) as AppAST;
+    const screen = newAst.screens.find(s => s.id === selectedScreenId);
+    if (!screen || screen.rootComponent.id === componentId) return;
+
+    const res = findParentAndIndex(screen.rootComponent, componentId);
+    if (!res || !res.parent.children) return;
+
+    const { parent, index } = res;
+    const children = parent.children;
+    if (!children) return;
+
+    const clone = cloneNodeWithNewIds(children[index]);
+    children.splice(index + 1, 0, clone);
+    set({ ast: newAst, selectedComponentId: clone.id });
   },
 
   addStateVariable: (screenId, variable) => {
